@@ -22,6 +22,21 @@ public:
         return data_[row * cols_ + col];
     }
 
+    float& operator[](size_t index) { return data_[index]; }
+    const float& operator[](size_t index) const { return data_[index]; }
+
+    Tensor2D operator+(const Tensor2D& other) {
+        if (rows_ != other.rows_ || cols_ != other.cols_) {
+            throw std::invalid_argument("Shape mismatch in operator+");
+        }
+
+        Tensor2D result(rows_, cols_);
+        for (size_t i = 0; i < rows_ * cols_; ++i) {
+            result[i] = this->data_[i] + other.data_[i];
+        }
+        return result;
+    }
+
     void fill(float value) {
         std::fill(data_.begin(), data_.end(), value);
     }
