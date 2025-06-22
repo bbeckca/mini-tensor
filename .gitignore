@@ -1,5 +1,16 @@
-/build/
-/*.out
+# Build artifacts
+build/
 *.o
+*.out
+tensor
+
+# IDE-specific
+.vscode/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
+
 *.exe
 *.log
