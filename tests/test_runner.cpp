@@ -33,6 +33,15 @@ void test_shape() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_reshape() {
+    std::cout << "Running test: reshape()... ";
+    Tensor2D t1(2, 2);
+    t1.reshape(4, 1);
+    assert(t1.shape().first == 4);
+    assert(t1.shape().second == 1);
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_addition() {
     std::cout << "Running test: operator+... ";
     Tensor2D t1(2, 2);
@@ -88,6 +97,7 @@ int main() {
     
     test_fill_and_operator_parentheses();
     test_shape();
+    test_reshape();
     test_addition();
     test_addition_exceptions();
 

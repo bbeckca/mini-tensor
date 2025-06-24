@@ -64,6 +64,15 @@ public:
         return {rows_, cols_};
     }
 
+
+    void reshape(size_t rows, size_t cols) {
+        if (rows * cols != rows_ * cols_) {
+            throw std::invalid_argument("New shape must match the total number of elements");
+        }
+        rows_ = rows;
+        cols_ = cols;
+    }
+
 private:
     size_t rows_, cols_;
     std::vector<float> data_;
