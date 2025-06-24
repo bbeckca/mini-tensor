@@ -51,6 +51,24 @@ void test_addition() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_addition_in_place() {
+    std::cout << "Running test: operator+=... ";
+    Tensor2D t1(2, 2);
+    t1.fill(1.0f);
+    Tensor2D t2(2, 2);
+    t2.fill(41.0f);
+
+    t1 += t2;
+
+    for (size_t i = 0; i < t1.shape().first; ++i) {
+        for (size_t j = 0; j < t1.shape().second; ++j) {
+            assert(t1(i, j) == 42.0f);
+        }
+    }
+
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_addition_exceptions() {
     std::cout << "Running test: operator+ exceptions... ";
     Tensor2D t1(2, 3);

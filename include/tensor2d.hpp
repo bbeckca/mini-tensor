@@ -37,6 +37,16 @@ public:
         return result;
     }
 
+    Tensor2D& operator+=(const Tensor2D& other) {
+        if (rows_ != other.rows_ || cols_ != other.cols_) {
+            throw std::invalid_argument("Shape mismatch in operator+=");
+        }
+        for (size_t i = 0; i < rows_ * cols_; ++i) {
+            this->data_[i] += other.data_[i];
+        }
+        return *this;
+    }
+
     void fill(float value) {
         std::fill(data_.begin(), data_.end(), value);
     }
