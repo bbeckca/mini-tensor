@@ -26,23 +26,31 @@ public:
     const float& operator[](size_t index) const { return data_[index]; }
 
     Tensor2D operator+(const Tensor2D& other) {
-        if (rows_ != other.rows_ || cols_ != other.cols_) {
-            throw std::invalid_argument("Shape mismatch in operator+");
-        }
+        auto [output_rows, output_cols] = infer_broadcast_shape(shape(), other.shape());
 
-        Tensor2D result(rows_, cols_);
-        for (size_t i = 0; i < rows_ * cols_; ++i) {
-            result[i] = this->data_[i] + other.data_[i];
+        Tensor2D result = Tensor2D(output_rows, output_cols);
+
+        for (size_t i = 0; i < output_rows; ++i) {
+            for (size_t j = 0; j < output_cols; ++j) {
+                float a_val = (*this)(i % this->rows_, j % this->cols_);
+                float b_val = other(i % other.rows_, j % other.cols_);
+                result(i, j) = a_val + b_val;
+            }
         }
         return result;
     }
 
     Tensor2D& operator+=(const Tensor2D& other) {
-        if (rows_ != other.rows_ || cols_ != other.cols_) {
+        if ((rows_ != other.rows_ && other.rows_ != 1) ||
+            (cols_ != other.cols_ && other.cols_ != 1)) {
             throw std::invalid_argument("Shape mismatch in operator+=");
         }
-        for (size_t i = 0; i < rows_ * cols_; ++i) {
-            this->data_[i] += other.data_[i];
+        for (size_t i = 0; i < rows_; ++i) {
+            size_t i_other = (other.rows_ == 1) ? 0 : i;
+            for (size_t j = 0; j < cols_; ++j) {
+                size_t j_other = (other.cols_ == 1) ? 0 : j;
+                (*this)(i, j) += other(i_other, j_other);
+            }
         }
         return *this;
     }
