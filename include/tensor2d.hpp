@@ -73,6 +73,16 @@ public:
         cols_ = cols;
     }
 
+    std::pair<size_t, size_t> infer_broadcast_shape(std::pair<size_t, size_t> shape1, std::pair<size_t, size_t> shape2) const {
+        if (shape1.first != shape2.first && shape1.first != 1 && shape2.first != 1) {
+            throw std::invalid_argument("Shape mismatch in infer_broadcast_shape for rows");
+        }
+        if (shape1.second != shape2.second && shape1.second != 1 && shape2.second != 1) {
+            throw std::invalid_argument("Shape mismatch in infer_broadcast_shape for cols");
+        }
+        return {std::max(shape1.first, shape2.first), std::max(shape1.second, shape2.second)};
+    }
+
 private:
     size_t rows_, cols_;
     std::vector<float> data_;

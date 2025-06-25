@@ -42,7 +42,17 @@ void test_reshape() {
     std::cout << "PASSED" << std::endl;
 }
 
-void test_addition() {
+void test_infer_broadcast_shape() {
+    std::cout << "Running test: infer_broadcast_shape()... ";
+    Tensor2D t1(2, 1);
+    Tensor2D t2(1, 5);
+    auto shape = t1.infer_broadcast_shape(t1.shape(), t2.shape());
+    assert(shape.first == 2);
+    assert(shape.second == 5);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_addition_with_same_shapes() {
     std::cout << "Running test: operator+... ";
     Tensor2D t1(2, 2);
     t1.fill(1.0f);
@@ -95,11 +105,15 @@ void test_addition_exceptions() {
 int main() {
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
     
-    test_fill_and_operator_parentheses();
+    
     test_shape();
     test_reshape();
-    test_addition();
+    test_infer_broadcast_shape();
+    test_fill_and_operator_parentheses();
+
+    test_addition_with_same_shapes();
     test_addition_exceptions();
+    
 
     std::cout << "-----------------------------------" << std::endl;
     std::cout << "All tests passed successfully!" << std::endl;
