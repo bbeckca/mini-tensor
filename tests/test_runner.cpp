@@ -266,33 +266,187 @@ void test_abs_in_place() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_subtraction_with_same_shapes() {
+    std::cout << "Running test: operator-... ";
+    Tensor2D t1(2, 2);
+    t1.fill(43.0f);
+
+    Tensor2D t2(2, 2);
+    t2.fill(1.0f);
+
+    Tensor2D t3 = t1 - t2;
+
+    for (size_t i = 0; i < t3.shape().first; ++i) {
+        for (size_t j = 0; j < t3.shape().second; ++j) {
+            assert(t3(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_subtraction_with_compatible_broadcast_shapes() {
+    std::cout << "Running test: operator- with broadcast compatible shapes... ";
+    Tensor2D t1(1, 5);
+    t1.fill(43.0f);
+    Tensor2D t2(3, 1);
+    t2.fill(1.0f);
+
+    Tensor2D t3 = t1 - t2;
+
+    for (size_t i = 0; i < t3.shape().first; ++i) {
+        for (size_t j = 0; j < t3.shape().second; ++j) {
+            assert(t3(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_subtraction_with_incompatible_broadcast_shapes() {
+    std::cout << "Running test: operator- with incompatible broadcast shapes... ";
+    Tensor2D t1(2, 2);
+    t1.fill(43.0f);
+
+    Tensor2D t2(3, 2);
+    t2.fill(1.0f);
+
+    bool exception_thrown = false;
+    try {
+        Tensor2D t3 = t1 - t2;
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_subtraction_in_place_with_same_shapes() {
+    std::cout << "Running test: operator-=... ";
+    Tensor2D t1(2, 2);
+    t1.fill(43.0f);
+    Tensor2D t2(2, 2);
+    t2.fill(1.0f);
+
+    t1 -= t2;
+
+    for (size_t i = 0; i < t1.shape().first; ++i) {
+        for (size_t j = 0; j < t1.shape().second; ++j) {
+            assert(t1(i, j) == 42.0f);
+        }
+    }
+
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_subtraction_in_place_compatible_broadcast_shapes() {
+    std::cout << "Running test: operator-= with compatible broadcast shapes... ";
+    Tensor2D t1(3, 5);
+    t1.fill(43.0f);
+    Tensor2D t2(3, 1);
+    t2.fill(1.0f);
+
+    t1 -= t2;
+
+    for (size_t i = 0; i < t1.shape().first; ++i) {
+        for (size_t j = 0; j < t1.shape().second; ++j) {
+            assert(t1(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_subtraction_in_place_incompatible_broadcast_shapes() {
+    std::cout << "Running test: operator-= with incompatible broadcast shapes... ";
+    Tensor2D t1(2, 3);
+    Tensor2D t2(3, 2);
+    bool exception_thrown = false;
+    try {
+        t1 -= t2;
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_subtraction_with_scalar() {
+    std::cout << "Running test: operator- with scalar... ";
+    Tensor2D t1(2, 2);
+    t1.fill(43.0f);
+
+    Tensor2D t2 = t1 - 1.0f;
+
+    for (size_t i = 0; i < t2.shape().first; ++i) {
+        for (size_t j = 0; j < t2.shape().second; ++j) {
+            assert(t2(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_subtraction_with_scalar_in_place() {
+    std::cout << "Running test: operator-= with scalar... ";
+    Tensor2D t1(2, 2);
+    t1.fill(43.0f);
+
+    t1 -= 1.0f;
+
+    for (size_t i = 0; i < t1.shape().first; ++i) {
+        for (size_t j = 0; j < t1.shape().second; ++j) {
+            assert(t1(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
+    std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
+    std::cout << std::endl;
     
     
     test_shape();
     test_reshape();
     test_infer_broadcast_shape();
     test_fill_and_operator_parentheses();
+    std::cout << std::endl;
     
     test_addition_with_same_shapes();
     test_addition_with_compatible_broadcast_shapes();
     test_addition_with_incompatible_broadcast_shapes();
+    std::cout << std::endl;
 
     test_addition_in_place_with_same_shapes();
     test_addition_in_place_compatible_broadcast_shapes();
     test_addition_in_place_incompatible_broadcast_shapes();
+    std::cout << std::endl;
 
     test_addition_with_scalar();
     test_addition_with_scalar_in_place();
+    std::cout << std::endl;
+
+    test_subtraction_with_same_shapes();
+    test_subtraction_with_compatible_broadcast_shapes();
+    test_subtraction_with_incompatible_broadcast_shapes();
+    std::cout << std::endl;
+
+    test_subtraction_in_place_with_same_shapes();
+    test_subtraction_in_place_compatible_broadcast_shapes();
+    test_subtraction_in_place_incompatible_broadcast_shapes();
+    std::cout << std::endl;
+
+    test_subtraction_with_scalar();
+    test_subtraction_with_scalar_in_place();
+    std::cout << std::endl;
 
     test_relu();
     test_negate();
     test_abs();
+    std::cout << std::endl;
 
     test_relu_in_place();
     test_negate_in_place();
     test_abs_in_place();
+    std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;
     std::cout << "All tests passed successfully!" << std::endl;
