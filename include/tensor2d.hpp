@@ -96,6 +96,26 @@ public:
         return *this;
     }
 
+    Tensor2D operator+(float scalar) {
+        Tensor2D result = Tensor2D(rows_, cols_);
+
+        for (size_t i = 0; i < rows_; ++i) {
+            for (size_t j = 0; j < cols_; ++j) {
+                result(i, j) = (*this)(i, j) + scalar;
+            }
+        }
+        return result;
+    }
+
+    Tensor2D& operator+=(float scalar) {
+        for (size_t i = 0; i < rows_; ++i) {
+            for (size_t j = 0; j < cols_; ++j) {
+                (*this)(i, j) += scalar;
+            }
+        }
+        return *this;
+    }
+
     Tensor2D unary_op(std::function<float(float)> fn) const {
         Tensor2D result = Tensor2D(rows_, cols_);
         for (size_t i = 0; i < rows_; ++i) {

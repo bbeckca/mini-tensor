@@ -151,6 +151,37 @@ void test_addition_in_place_incompatible_broadcast_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
+
+void test_addition_with_scalar() {
+    std::cout << "Running test: operator+ with scalar... ";
+    Tensor2D t1(2, 2);
+    t1.fill(1.0f);
+
+    Tensor2D t2 = t1 + 41.0f;
+
+    for (size_t i = 0; i < t2.shape().first; ++i) {
+        for (size_t j = 0; j < t2.shape().second; ++j) {
+            assert(t2(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_addition_with_scalar_in_place() {
+    std::cout << "Running test: operator+= with scalar... ";
+    Tensor2D t1(2, 2);
+    t1.fill(1.0f);
+
+    t1 += 41.0f;
+
+    for (size_t i = 0; i < t1.shape().first; ++i) {
+        for (size_t j = 0; j < t1.shape().second; ++j) {
+            assert(t1(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_relu() {
     std::cout << "Running test: relu()... ";
     Tensor2D t1(1, 3);
@@ -251,6 +282,9 @@ int main() {
     test_addition_in_place_with_same_shapes();
     test_addition_in_place_compatible_broadcast_shapes();
     test_addition_in_place_incompatible_broadcast_shapes();
+
+    test_addition_with_scalar();
+    test_addition_with_scalar_in_place();
 
     test_relu();
     test_negate();
