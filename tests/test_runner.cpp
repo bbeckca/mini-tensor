@@ -530,6 +530,137 @@ void test_multiplication_with_scalar_in_place() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_division_with_same_shapes() {
+    std::cout << "Running test: operator/... ";
+    Tensor2D t1(2, 2);
+    t1.fill(84.0f);
+
+    Tensor2D t2(2, 2);
+    t2.fill(2.0f);
+
+    Tensor2D t3 = t1 / t2;
+
+    for (size_t i = 0; i < t3.shape().first; ++i) {
+        for (size_t j = 0; j < t3.shape().second; ++j) {
+            assert(t3(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_division_with_compatible_broadcast_shapes() {
+    std::cout << "Running test: operator/ with broadcast compatible shapes... ";
+    Tensor2D t1(1, 5);
+    t1.fill(84.0f);
+    Tensor2D t2(3, 1);
+    t2.fill(2.0f);
+
+    Tensor2D t3 = t1 / t2;
+
+    for (size_t i = 0; i < t3.shape().first; ++i) {
+        for (size_t j = 0; j < t3.shape().second; ++j) {
+            assert(t3(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_division_with_incompatible_broadcast_shapes() {
+    std::cout << "Running test: operator/ with incompatible broadcast shapes... ";
+    Tensor2D t1(2, 2);
+    t1.fill(84.0f);
+
+    Tensor2D t2(3, 2);
+    t2.fill(2.0f);
+
+    bool exception_thrown = false;
+    try {
+        Tensor2D t3 = t1 / t2;
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_division_in_place_with_same_shapes() {
+    std::cout << "Running test: operator/=... ";
+    Tensor2D t1(2, 2);
+    t1.fill(84.0f);
+    Tensor2D t2(2, 2);
+    t2.fill(2.0f);
+
+    t1 /= t2;
+
+    for (size_t i = 0; i < t1.shape().first; ++i) {
+        for (size_t j = 0; j < t1.shape().second; ++j) {
+            assert(t1(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_division_in_place_compatible_broadcast_shapes() {
+    std::cout << "Running test: operator/= with compatible broadcast shapes... ";
+    Tensor2D t1(3, 5);
+    t1.fill(84.0f);
+    Tensor2D t2(3, 1);
+    t2.fill(2.0f);
+
+    t1 /= t2;
+
+    for (size_t i = 0; i < t1.shape().first; ++i) {
+        for (size_t j = 0; j < t1.shape().second; ++j) {
+            assert(t1(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_division_in_place_incompatible_broadcast_shapes() {
+    std::cout << "Running test: operator/= with incompatible broadcast shapes... ";
+    Tensor2D t1(2, 3);
+    Tensor2D t2(3, 2);
+    bool exception_thrown = false;
+    try {
+        t1 /= t2;
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_division_with_scalar() {
+    std::cout << "Running test: operator/ with scalar... ";
+    Tensor2D t1(2, 2);
+    t1.fill(84.0f);
+
+    Tensor2D t2 = t1 / 2.0f;
+
+    for (size_t i = 0; i < t2.shape().first; ++i) {
+        for (size_t j = 0; j < t2.shape().second; ++j) {
+            assert(t2(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_division_with_scalar_in_place() {
+    std::cout << "Running test: operator/= with scalar... ";
+    Tensor2D t1(2, 2);
+    t1.fill(84.0f);
+
+    t1 /= 2.0f;
+
+    for (size_t i = 0; i < t1.shape().first; ++i) {
+        for (size_t j = 0; j < t1.shape().second; ++j) {
+            assert(t1(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -582,6 +713,20 @@ int main() {
 
     test_multiplication_with_scalar();
     test_multiplication_with_scalar_in_place();
+    std::cout << std::endl;
+
+    test_division_with_same_shapes();
+    test_division_with_compatible_broadcast_shapes();
+    test_division_with_incompatible_broadcast_shapes();
+    std::cout << std::endl;
+
+    test_division_in_place_with_same_shapes();
+    test_division_in_place_compatible_broadcast_shapes();
+    test_division_in_place_incompatible_broadcast_shapes();
+    std::cout << std::endl;
+
+    test_division_with_scalar();
+    test_division_with_scalar_in_place();
     std::cout << std::endl;
 
     test_relu();
