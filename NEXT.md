@@ -1,18 +1,17 @@
-* broadcast shape inference
-    - aligns shapes from the right
-    - allows dimensions of equal size or size 1
-    - throws if broadcasting is invalid
-    - produces output shape
+# Mini Tensor – Next Steps
 
-* broadcast-aware element access
-    - if one side has size 1 in dimension, use % to wrap the index to simulate repeating dimensions
+Short term
+- print() or to_string() for console output (row-major, optional formatting)
+- Reductions: sum(), mean(), max() for scalar aggregation
+- operator== for test assertions (shape + value equality)
 
-* virtual expand
-    - returns a new tensor view (or object) with a broadcasted shape
-    - validates compability
-    - set new shape metadata
-    - shares data (no copy)
-    - uses access logic w/ broadcasting support using % based indexing
+Stretch Goals (July)
+- matmul() or operator* for matrix multiplication (dim check + shape logic)
+- Views/slicing: row(i), submatrix(i, j, h, w)
+- Initializers: Tensor2D::zeros(), from_vector(...) for test ergonomics
 
-
-    
+Backlog 
+- expand() method for explicit broadcast-aware shape expansion  
+  - Signature: Tensor2D expand(size_t new_rows, size_t new_cols) const  
+  - Enables broadcasting outside of binary ops  
+  - Lays foundation for views or derived tensor types
