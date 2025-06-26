@@ -106,16 +106,36 @@ public:
         return result;
     }
 
+    void unary_op(std::function<float(float)> fn) {
+        for (size_t i = 0; i < rows_; ++i) {
+            for (size_t j = 0; j < cols_; ++j) {
+                (*this)(i, j) = fn((*this)(i, j));
+            }
+        }
+    }
+
     Tensor2D relu() const {
         return unary_op([](float x) { return std::max(x, 0.0f); });
+    }
+
+    void relu_in_place() {
+        unary_op([](float x) { return std::max(x, 0.0f); });
     }
 
     Tensor2D negate() const {
         return unary_op([](float x) { return -x; });
     }
 
+    void negate_in_place() {
+        unary_op([](float x) { return -x; });
+    }
+
     Tensor2D abs() const {
         return unary_op([](float x) { return std::abs(x); });
+    }
+
+    void abs_in_place() {
+        unary_op([](float x) { return std::abs(x); });
     }
 
 };

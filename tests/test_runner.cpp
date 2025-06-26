@@ -165,6 +165,20 @@ void test_relu() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_relu_in_place() {
+    std::cout << "Running test: relu() in place... ";
+    Tensor2D t1(1, 3);
+    t1(0, 0) = -1.0f;
+    t1(0, 1) = 2.0f;
+    t1(0, 2) = -3.0f;
+
+    t1.relu_in_place();
+    assert(t1(0, 0) == 0.0f);
+    assert(t1(0, 1) == 2.0f);
+    assert(t1(0, 2) == 0.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_negate() {
     std::cout << "Running test: negate()... ";
     Tensor2D t1(1, 3);
@@ -179,6 +193,20 @@ void test_negate() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_negate_in_place() {
+    std::cout << "Running test: negate() in place... ";
+    Tensor2D t1(1, 3);
+    t1(0, 0) = -1.0f;
+    t1(0, 1) = 2.0f;
+    t1(0, 2) = -3.0f;
+
+    t1.negate_in_place();
+    assert(t1(0, 0) == 1.0f);
+    assert(t1(0, 1) == -2.0f);
+    assert(t1(0, 2) == 3.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_abs() {
     std::cout << "Running test: abs()... ";
     Tensor2D t1(1, 3);
@@ -190,6 +218,20 @@ void test_abs() {
     assert(t2(0, 0) == 1.0f);
     assert(t2(0, 1) == 2.0f);
     assert(t2(0, 2) == 3.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_abs_in_place() {
+    std::cout << "Running test: abs() in place... ";
+    Tensor2D t1(1, 3);
+    t1(0, 0) = -1.0f;
+    t1(0, 1) = 2.0f;
+    t1(0, 2) = -3.0f;
+
+    t1.abs_in_place();
+    assert(t1(0, 0) == 1.0f);
+    assert(t1(0, 1) == 2.0f);
+    assert(t1(0, 2) == 3.0f);
     std::cout << "PASSED" << std::endl;
 }
 
@@ -213,6 +255,10 @@ int main() {
     test_relu();
     test_negate();
     test_abs();
+
+    test_relu_in_place();
+    test_negate_in_place();
+    test_abs_in_place();
 
     std::cout << "-----------------------------------" << std::endl;
     std::cout << "All tests passed successfully!" << std::endl;
