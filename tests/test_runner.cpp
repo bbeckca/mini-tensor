@@ -151,6 +151,48 @@ void test_addition_in_place_incompatible_broadcast_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_relu() {
+    std::cout << "Running test: relu()... ";
+    Tensor2D t1(1, 3);
+    t1(0, 0) = -1.0f;
+    t1(0, 1) = 2.0f;
+    t1(0, 2) = -3.0f;
+
+    Tensor2D t2 = t1.relu();
+    assert(t2(0, 0) == 0.0f);
+    assert(t2(0, 1) == 2.0f);
+    assert(t2(0, 2) == 0.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_negate() {
+    std::cout << "Running test: negate()... ";
+    Tensor2D t1(1, 3);
+    t1(0, 0) = -1.0f;
+    t1(0, 1) = 2.0f;
+    t1(0, 2) = -3.0f;
+
+    Tensor2D t2 = t1.negate();
+    assert(t2(0, 0) == 1.0f);
+    assert(t2(0, 1) == -2.0f);
+    assert(t2(0, 2) == 3.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_abs() {
+    std::cout << "Running test: abs()... ";
+    Tensor2D t1(1, 3);
+    t1(0, 0) = -1.0f;
+    t1(0, 1) = 2.0f;
+    t1(0, 2) = -3.0f;
+
+    Tensor2D t2 = t1.abs();
+    assert(t2(0, 0) == 1.0f);
+    assert(t2(0, 1) == 2.0f);
+    assert(t2(0, 2) == 3.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
     
@@ -167,7 +209,10 @@ int main() {
     test_addition_in_place_with_same_shapes();
     test_addition_in_place_compatible_broadcast_shapes();
     test_addition_in_place_incompatible_broadcast_shapes();
-    
+
+    test_relu();
+    test_negate();
+    test_abs();
 
     std::cout << "-----------------------------------" << std::endl;
     std::cout << "All tests passed successfully!" << std::endl;
