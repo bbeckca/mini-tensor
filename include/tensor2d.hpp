@@ -308,4 +308,29 @@ public:
         unary_op([](float x) { return std::abs(x); });
     }
 
+    float sum() const {
+        float sum = 0.0f;
+        for (size_t i = 0; i < rows_; ++i) {
+            for (size_t j = 0; j < cols_; ++j) {
+                sum += (*this)(i, j);
+            }
+        }
+        return sum;
+    }
+
+    float mean() const {
+        return sum() / (rows_ * cols_);
+    }
+
+    float max() const {
+        float max = (*this)(0, 0);
+        for (size_t i = 0; i < rows_; ++i) {
+            for (size_t j = 0; j < cols_; ++j) {
+                if ((*this)(i, j) > max) {
+                    max = (*this)(i, j);
+                }
+            }
+        }
+        return max;
+    }
 };

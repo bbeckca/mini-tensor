@@ -661,6 +661,37 @@ void test_division_with_scalar_in_place() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_sum() {
+    std::cout << "Running test: sum()... ";
+    Tensor2D t1(2, 2);
+    t1.fill(1.0f);
+
+    float sum = t1.sum();
+    assert(sum == 4.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mean() {
+    std::cout << "Running test: mean()... ";
+    Tensor2D t1(2, 2);
+    t1.fill(42.0f);
+
+    float mean = t1.mean();
+    assert(mean == 42.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_max() {
+    std::cout << "Running test: max()... ";
+    Tensor2D t1(2, 2);
+    t1.fill(1.0f);
+    t1(0, 0) = 42.0f;
+
+    float max = t1.max();
+    assert(max == 42.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -737,6 +768,11 @@ int main() {
     test_relu_in_place();
     test_negate_in_place();
     test_abs_in_place();
+    std::cout << std::endl;
+
+    test_sum();
+    test_mean();
+    test_max();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;
