@@ -10,8 +10,8 @@ private:
     std::vector<float> data_;
 
 public:
-    Tensor2D(size_t rows, size_t cols)
-        : rows_(rows), cols_(cols), data_(rows * cols, 0.0f) {}
+    Tensor2D(size_t rows, size_t cols, float val=0)
+        : rows_(rows), cols_(cols), data_(rows * cols, val) {}
 
     float& operator()(size_t row, size_t col) {
         if (row >= rows_ || col >= cols_) {

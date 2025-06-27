@@ -3,6 +3,17 @@
 #include <iostream>
 #include <numeric>
 
+void test_constructor_with_default_value() {
+    std::cout << "Running test: constructor with default value... ";
+    Tensor2D t(2, 3, 42.0f);
+    for (size_t i = 0; i < t.shape().first; ++i) {
+        for (size_t j = 0; j < t.shape().second; ++j) {
+            assert(t(i, j) == 42.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_fill_and_operator_parentheses() {
     std::cout << "Running test: fill() and operator()... ";
     Tensor2D t(2, 3);
@@ -696,8 +707,10 @@ int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
     std::cout << std::endl;
-    
-    
+
+    test_constructor_with_default_value();
+    std::cout << std::endl;
+
     test_shape();
     test_reshape();
     test_infer_broadcast_shape();
