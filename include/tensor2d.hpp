@@ -66,6 +66,14 @@ public:
         return {std::max(shape1.first, shape2.first), std::max(shape1.second, shape2.second)};
     }
 
+    bool operator==(const Tensor2D& other) const {
+        return rows_ == other.rows_ && cols_ == other.cols_ && data_ == other.data_;
+    }
+
+    bool operator!=(const Tensor2D& other) const {
+        return !(*this == other);
+    }
+
     Tensor2D operator+(const Tensor2D& other) {
         auto [output_rows, output_cols] = infer_broadcast_shape(shape(), other.shape());
 

@@ -63,6 +63,23 @@ void test_infer_broadcast_shape() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_tensor_equality() {
+    std::cout << "Running test: operator==... ";
+    Tensor2D t1(2, 2, 42.0f);
+    Tensor2D t2(2, 2, 42.0f);
+    assert(t1 == t2);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor_inequality() {
+    std::cout << "Running test: operator!=... ";
+    Tensor2D t1(2, 2, 42.0f);
+    Tensor2D t2(2, 2, 42.0f);
+    t2(0, 0) = 1.0f;
+    assert(t1 != t2);
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_addition_with_same_shapes() {
     std::cout << "Running test: operator+... ";
     Tensor2D t1(2, 2);
@@ -716,7 +733,11 @@ int main() {
     test_infer_broadcast_shape();
     test_fill_and_operator_parentheses();
     std::cout << std::endl;
-    
+
+    test_tensor_equality();
+    test_tensor_inequality();
+    std::cout << std::endl;
+
     test_addition_with_same_shapes();
     test_addition_with_compatible_broadcast_shapes();
     test_addition_with_incompatible_broadcast_shapes();
