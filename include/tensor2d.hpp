@@ -361,4 +361,24 @@ public:
         }
         return max;
     }
+
+    Tensor2D mat_mul(const Tensor2D& other) {
+        if (cols_ != other.rows_) {
+            throw std::invalid_argument("Shape mismatch in mat_mul");
+        }
+
+        size_t output_rows = rows_, output_cols = other.cols_;
+        Tensor2D result = Tensor2D(output_rows, output_cols);
+
+        for (size_t i = 0; i < output_rows; ++i) {
+            for (size_t j = 0; j < output_cols; ++j) {
+                float sum = 0.0f;
+                for (size_t k = 0; k < cols_; ++k) {
+                    sum += (*this)(i, k) * other(k, j);
+                }
+                result(i, j) = sum;
+            }
+        }
+        return result;
+    }
 };

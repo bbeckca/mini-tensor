@@ -776,6 +776,54 @@ void test_max() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_mat_mul_with_same_shapes() {
+    std::cout << "Running test: mat_mul() with same shapes... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor2D t2 = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f});
+    Tensor2D t3 = t1.mat_mul(t2);
+    assert(t3(0, 0) == 19.0f);
+    assert(t3(0, 1) == 22.0f);
+    assert(t3(1, 0) == 43.0f);
+    assert(t3(1, 1) == 50.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mat_mul_with_compatible_shapes() {
+    std::cout << "Running test: mat_mul() with compatible shapes... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor2D t2 = Tensor2D::from_vector(3, 1, {1.0f, 0.0f, -1.0f});
+    Tensor2D t3 = t1.mat_mul(t2);
+    assert(t3(0, 0) == -2.0f);
+    assert(t3(1, 0) == -2.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mat_mul_with_identity_matrix() {
+    std::cout << "Running test: mat_mul() with identity matrix... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor2D t2 = Tensor2D::from_vector(2, 2, {1.0f, 0.0f, 0.0f, 1.0f});
+    Tensor2D t3 = t1.mat_mul(t2);
+    assert(t3(0, 0) == 1.0f);
+    assert(t3(0, 1) == 2.0f);
+    assert(t3(1, 0) == 3.0f);
+    assert(t3(1, 1) == 4.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mat_mul_with_incompatible_shapes() {
+    std::cout << "Running test: mat_mul() with incompatible shapes... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor2D t2 = Tensor2D::from_vector(3, 2, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    bool exception_thrown = false;
+    try {
+        Tensor2D t3 = t1.mat_mul(t2);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -869,6 +917,12 @@ int main() {
     test_sum();
     test_mean();
     test_max();
+    std::cout << std::endl;
+
+    test_mat_mul_with_same_shapes();
+    test_mat_mul_with_compatible_shapes();
+    test_mat_mul_with_identity_matrix();
+    test_mat_mul_with_incompatible_shapes();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;
