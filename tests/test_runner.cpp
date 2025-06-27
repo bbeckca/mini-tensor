@@ -75,6 +75,50 @@ void test_infer_broadcast_shape() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_row_wise_expand() {
+    std::cout << "Running test: row-wise expand()... ";
+    size_t rows = 1, cols = 3;
+    Tensor2D t1 = Tensor2D::from_vector(rows, cols, {1.0f, 2.0f, 3.0f});
+    Tensor2D t2 = t1.expand(2, 3);
+    assert(t2.shape().first == 2);
+    assert(t2.shape().second == 3);
+    for (size_t i = 0; i < t2.shape().first; ++i) {
+        for (size_t j = 0; j < t2.shape().second; ++j) {
+            assert(t1(i % rows, j % cols) == t2(i, j));
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_column_wise_expand() {
+    std::cout << "Running test: column-wise expand()... ";
+    size_t rows = 1, cols = 3;
+    Tensor2D t1 = Tensor2D::from_vector(rows, cols, {1.0f, 2.0f, 3.0f});
+    Tensor2D t2 = t1.expand(2, 3);
+    assert(t2.shape().first == 2);
+    assert(t2.shape().second == 3);
+    for (size_t i = 0; i < t2.shape().first; ++i) {
+        for (size_t j = 0; j < t2.shape().second; ++j) {
+            assert(t1(i % rows, j % cols) == t2(i, j));
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_expand_with_incompatible_shapes() {
+    std::cout << "Running test: expand() with incompatible shapes... ";
+    Tensor2D t1(2, 2);
+    t1.fill(42.0f);
+    bool exception_thrown = false;
+    try {
+        Tensor2D t2 = t1.expand(3, 3);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_tensor_equality() {
     std::cout << "Running test: operator==... ";
     Tensor2D t1(2, 2, 42.0f);
@@ -740,6 +784,11 @@ int main() {
     test_shape();
     test_reshape();
     test_infer_broadcast_shape();
+    std::cout << std::endl;
+    
+    test_row_wise_expand();
+    test_column_wise_expand();
+    test_expand_with_incompatible_shapes();
     std::cout << std::endl;
 
     test_constructor_with_default_value();

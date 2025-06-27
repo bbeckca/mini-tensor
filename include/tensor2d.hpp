@@ -75,6 +75,17 @@ public:
         return {std::max(shape1.first, shape2.first), std::max(shape1.second, shape2.second)};
     }
 
+    Tensor2D expand(size_t rows, size_t cols) const {
+        auto [output_rows, output_cols] = infer_broadcast_shape(shape(), {rows, cols});
+        Tensor2D result = Tensor2D(output_rows, output_cols);
+        for (size_t i = 0; i < output_rows; ++i) {
+            for (size_t j = 0; j < output_cols; ++j) {
+                result(i, j) = (*this)(i % rows_, j % cols_);
+            }
+        }
+        return result;
+    }
+
     bool operator==(const Tensor2D& other) const {
         return rows_ == other.rows_ && cols_ == other.cols_ && data_ == other.data_;
     }
