@@ -30,6 +30,18 @@ void test_fill_and_operator_parentheses() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_from_vector() {
+    std::cout << "Running test: from_vector()... ";
+    std::vector<float> data = {0.0f, 1.0f, 2.0f, 3.0f, 4.0f, 5.0f};
+    Tensor2D t = Tensor2D::from_vector(2, 3, data);
+    for (size_t i = 0; i < t.shape().first; ++i) {
+        for (size_t j = 0; j < t.shape().second; ++j) {
+            assert(t(i, j) == data[i * t.shape().second + j]);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_shape() {
     std::cout << "Running test: shape()... ";
     Tensor2D t1(4, 5);
@@ -725,13 +737,14 @@ int main() {
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
     std::cout << std::endl;
 
-    test_constructor_with_default_value();
-    std::cout << std::endl;
-
     test_shape();
     test_reshape();
     test_infer_broadcast_shape();
+    std::cout << std::endl;
+
+    test_constructor_with_default_value();
     test_fill_and_operator_parentheses();
+    test_from_vector();
     std::cout << std::endl;
 
     test_tensor_equality();

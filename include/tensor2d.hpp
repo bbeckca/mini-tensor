@@ -34,6 +34,15 @@ public:
         std::fill(data_.begin(), data_.end(), value);
     }
 
+    static Tensor2D from_vector(size_t rows, size_t cols, const std::vector<float>& data) {
+        if (data.size() != rows * cols) {
+            throw std::invalid_argument("Data size must match the number of elements");
+        }
+        Tensor2D result(rows, cols);
+        std::copy(data.begin(), data.end(), result.data_.begin());
+        return result;
+    }
+
     void print() const {
         for (size_t i = 0; i < rows_; ++i) {
             for (size_t j = 0; j < cols_; ++j) {
