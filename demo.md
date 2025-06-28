@@ -1,0 +1,350 @@
+# Tensor2D Demo and Feature Documentation
+_Last updated: June 28, 2025_
+
+## Table of Contents
+- [Constructors](#constructors)
+- [Basic Operations](#basic-operations)
+- [Arithmetic Operations](#arithmetic-operations)
+- [Matrix Operations](#matrix-operations)
+- [Reduction Operations](#reduction-operations)
+- [Element-wise Functions](#element-wise-functions)
+- [Shape and Reshaping](#shape-and-reshaping)
+- [Broadcasting](#broadcasting)
+- [Comparison Operations](#comparison-operations)
+- [Building and Running](#building-and-running)
+
+## Constructors
+
+### Basic Constructor
+```cpp
+// Create a 3x4 tensor filled with zeros
+Tensor2D tensor(3, 4);
+
+// Create a 2x2 tensor filled with a specific value
+Tensor2D tensor(2, 2, 42.0f);
+```
+
+### From Vector
+```cpp
+// Create tensor from existing data
+std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f};
+Tensor2D tensor = Tensor2D::from_vector(2, 2, data);
+```
+
+## Basic Operations
+
+### Element Access
+```cpp
+// Access elements using (row, col) syntax
+float value = tensor(0, 1);
+tensor(1, 2) = 5.5f;
+
+// Access elements using linear indexing
+float value = tensor[3];
+tensor[5] = 10.0f;
+```
+
+### Fill Operations
+```cpp
+// Fill entire tensor with a value
+tensor.fill(42.0f);
+```
+
+### Printing
+```cpp
+// Print tensor contents
+tensor.print();
+```
+
+## Arithmetic Operations
+
+### Addition
+```cpp
+// Tensor + Tensor (with broadcasting)
+Tensor2D a(2, 2, 1.0f);
+Tensor2D b(2, 2, 2.0f);
+Tensor2D result = a + b;  // result = 3.0f everywhere
+
+// Tensor + Scalar
+Tensor2D result = a + 5.0f;  // adds 5.0f to every element
+
+// In-place addition
+a += b;
+a += 3.0f;
+```
+
+### Subtraction
+```cpp
+// Tensor - Tensor (with broadcasting)
+Tensor2D result = a - b;
+
+// Tensor - Scalar
+Tensor2D result = a - 2.0f;
+
+// In-place subtraction
+a -= b;
+a -= 1.0f;
+```
+
+### Multiplication
+```cpp
+// Element-wise multiplication (with broadcasting)
+Tensor2D result = a * b;
+
+// Tensor * Scalar
+Tensor2D result = a * 3.0f;
+
+// In-place multiplication
+a *= b;
+a *= 2.0f;
+```
+
+### Division
+```cpp
+// Element-wise division (with broadcasting)
+Tensor2D result = a / b;
+
+// Tensor / Scalar
+Tensor2D result = a / 2.0f;
+
+// In-place division
+a /= b;
+a /= 4.0f;
+```
+
+## Matrix Operations
+
+### Matrix Multiplication
+```cpp
+// Matrix multiplication (not element-wise)
+Tensor2D a(2, 3);  // 2x3 matrix
+Tensor2D b(3, 2);  // 3x2 matrix
+Tensor2D result = a.mat_mul(b);  // Result is 2x2
+
+// Identity matrix multiplication
+Tensor2D identity(2, 2);
+identity(0, 0) = 1.0f;
+identity(1, 1) = 1.0f;
+Tensor2D result = a.mat_mul(identity);  // a unchanged
+```
+
+## Reduction Operations
+
+### Sum
+```cpp
+// Sum all elements
+float total = tensor.sum();
+```
+
+### Mean
+```cpp
+// Calculate mean of all elements
+float average = tensor.mean();
+```
+
+### Maximum
+```cpp
+// Find maximum value
+float max_val = tensor.max();
+
+// Find position of maximum value
+std::pair<size_t, size_t> max_pos = tensor.arg_max();
+```
+
+## Element-wise Functions
+
+### ReLU (Rectified Linear Unit)
+```cpp
+// Apply ReLU function (max(0, x))
+Tensor2D result = tensor.relu();
+
+// In-place ReLU
+tensor.relu_in_place();
+```
+
+### Negation
+```cpp
+// Negate all elements
+Tensor2D result = tensor.negate();
+
+// In-place negation
+tensor.negate_in_place();
+```
+
+### Absolute Value
+```cpp
+// Take absolute value of all elements
+Tensor2D result = tensor.abs();
+
+// In-place absolute value
+tensor.abs_in_place();
+```
+
+### Custom Element-wise Operations
+```cpp
+// Apply custom function to all elements
+Tensor2D result = tensor.unary_op([](float x) { return x * x; });
+
+// In-place custom operation
+tensor.unary_op([](float x) { return std::sqrt(x); });
+```
+
+## Shape and Reshaping
+
+### Get Shape
+```cpp
+// Get tensor dimensions
+auto [rows, cols] = tensor.shape();
+// or
+std::pair<size_t, size_t> dims = tensor.shape();
+```
+
+### Reshape
+```cpp
+// Reshape tensor (must preserve total number of elements)
+tensor.reshape(4, 1);  // From 2x2 to 4x1
+```
+
+## Broadcasting
+
+### Automatic Broadcasting
+Tensor2D supports NumPy-style broadcasting for arithmetic operations:
+
+```cpp
+// Broadcasting with different shapes
+Tensor2D a(1, 3);  // Shape: 1x3
+Tensor2D b(2, 1);  // Shape: 2x1
+Tensor2D result = a + b;  // Result: 2x3
+
+// Broadcasting rules:
+// - Dimensions are aligned from the right
+// - Missing dimensions are treated as 1
+// - Dimensions of size 1 are broadcast to match larger dimensions
+```
+
+### Manual Broadcasting
+```cpp
+// Expand tensor to specific shape
+Tensor2D expanded = tensor.expand(3, 4);
+```
+
+## Comparison Operations
+
+### Equality
+```cpp
+// Check if two tensors are equal
+bool are_equal = (a == b);
+
+// Check if tensors are not equal
+bool are_different = (a != b);
+```
+
+## Error Handling
+
+The library provides comprehensive error checking:
+
+```cpp
+// Out of bounds access throws std::out_of_range
+try {
+    float value = tensor(10, 10);  // Will throw if tensor is smaller
+} catch (const std::out_of_range& e) {
+    std::cout << "Index out of bounds: " << e.what() << std::endl;
+}
+
+// Shape mismatch throws std::invalid_argument
+try {
+    Tensor2D result = a.mat_mul(b);  // Will throw if shapes incompatible
+} catch (const std::invalid_argument& e) {
+    std::cout << "Shape mismatch: " << e.what() << std::endl;
+}
+```
+
+## Building and Running
+
+### Build and Run Tests
+```bash
+g++ -std=c++17 -Iinclude -o build/test_runner tests/test_runner.cpp src/tensor2d.cpp && ./build/test_runner
+```
+
+This command does the following:
+- `g++`: Invokes the C++ compiler.
+- `-std=c++17`: Uses the C++17 standard.
+- `-Iinclude`: Tells the compiler to look for header files in the `include` directory.
+- `-o build/test_runner`: Specifies the output executable name and location.
+- `tests/test_runner.cpp src/tensor2d.cpp`: The source files to compile.
+- `&& ./build/test_runner`: Runs the compiled program if the build was successful.
+
+### Build and Run Benchmark
+```bash
+g++ -std=c++17 -Iinclude -o build/benchmark benchmark.cpp src/tensor2d.cpp && ./build/benchmark
+```
+
+This command does the following:
+- `g++`: Invokes the C++ compiler.
+- `-std=c++17`: Uses the C++17 standard.
+- `-Iinclude`: Tells the compiler to look for header files in the `include` directory.
+- `-o build/benchmark`: Specifies the output executable name and location.
+- `benchmark.cpp src/tensor2d.cpp`: The source files to compile.
+- `&& ./build/benchmark`: Runs the compiled program if the build was successful.
+
+## Complete Example
+
+```cpp
+#include "tensor2d.hpp"
+#include <iostream>
+
+int main() {
+    // Create tensors
+    Tensor2D a = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor2D b = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f});
+    
+    std::cout << "Tensor A:" << std::endl;
+    a.print();
+    
+    std::cout << "Tensor B:" << std::endl;
+    b.print();
+    
+    // Arithmetic operations
+    Tensor2D sum = a + b;
+    Tensor2D product = a * b;
+    Tensor2D scaled = a * 2.0f;
+    
+    std::cout << "A + B:" << std::endl;
+    sum.print();
+    
+    std::cout << "A * B (element-wise):" << std::endl;
+    product.print();
+    
+    // Matrix multiplication
+    Tensor2D matmul_result = a.mat_mul(b);
+    std::cout << "A @ B (matrix multiplication):" << std::endl;
+    matmul_result.print();
+    
+    // Reductions
+    std::cout << "Sum of A: " << a.sum() << std::endl;
+    std::cout << "Mean of A: " << a.mean() << std::endl;
+    std::cout << "Max of A: " << a.max() << std::endl;
+    
+    // Element-wise functions
+    Tensor2D relu_result = a.relu();
+    std::cout << "ReLU(A):" << std::endl;
+    relu_result.print();
+    
+    return 0;
+}
+```
+
+## Performance Notes
+
+- The library uses contiguous memory layout for efficient cache access
+- Matrix multiplication uses naive O(n³) algorithm - suitable for small matrices
+- Broadcasting operations create new tensors rather than views
+- In-place operations are available for better performance when possible
+
+## Limitations
+
+- Only supports 2D tensors
+- Limited to float data type
+- No GPU acceleration
+- No automatic differentiation
+- Broadcasting creates new tensors (no view semantics) 
