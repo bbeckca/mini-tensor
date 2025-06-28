@@ -381,4 +381,18 @@ public:
         }
         return result;
     }
+
+    std::pair<size_t, size_t> arg_max() const {
+        float max = (*this)(0, 0);
+        std::pair<size_t, size_t> max_index = {0, 0};
+        for (size_t i = 0; i < rows_; ++i) {
+            for (size_t j = 0; j < cols_; ++j) {
+                if ((*this)(i, j) > max) {
+                    max = (*this)(i, j);
+                    max_index = {i, j};
+                }
+            }
+        }
+        return max_index;
+    }  
 };

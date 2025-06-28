@@ -776,6 +776,33 @@ void test_max() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_arg_max() {
+    std::cout << "Running test: arg_max()... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 42.0f, 4.0f});
+    std::pair<size_t, size_t> arg_max = t1.arg_max();
+    assert(arg_max.first == 1);
+    assert(arg_max.second == 0);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_arg_max_with_multiple_max_values() {
+    std::cout << "Running test: arg_max() with multiple max values... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 42.0f, 42.0f});
+    std::pair<size_t, size_t> arg_max = t1.arg_max();
+    assert(arg_max.first == 1);
+    assert(arg_max.second == 0);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_arg_max_with_all_equal() {
+    std::cout << "Running test: arg_max() with all equal values... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 1.0f, 1.0f, 1.0f});
+    std::pair<size_t, size_t> arg_max = t1.arg_max();
+    assert(arg_max.first == 0);
+    assert(arg_max.second == 0);
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_mat_mul_with_same_shapes() {
     std::cout << "Running test: mat_mul() with same shapes... ";
     Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f});
@@ -917,6 +944,7 @@ int main() {
     test_sum();
     test_mean();
     test_max();
+    test_arg_max();
     std::cout << std::endl;
 
     test_mat_mul_with_same_shapes();
