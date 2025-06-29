@@ -1,0 +1,23 @@
+#include "linear.hpp"
+#include <stdexcept>
+
+Linear::Linear(size_t in_dim, size_t out_dim)
+    : weights(in_dim, out_dim, 0.1f), bias(1, out_dim, 0.0f) {}
+
+void Linear::set_weights(const Tensor2D& new_weights) {
+    if (new_weights.shape() != weights.shape()) {
+        throw std::invalid_argument("Shape mismatch in set_weights");
+    }
+    weights = new_weights;
+}
+
+void Linear::set_bias(const Tensor2D& new_bias) {
+    if (new_bias.shape() != bias.shape()) {
+        throw std::invalid_argument("Shape mismatch in set_bias");
+    }
+    bias = new_bias;
+}
+
+Tensor2D Linear::forward(const Tensor2D& input) {
+    return input.mat_mul(weights) + bias;
+}

@@ -1,0 +1,7 @@
+#pragma once
+#include "module.hpp"
+
+class ReLU : public Module {
+public:
+    Tensor2D forward(const Tensor2D& input) override;
+};

@@ -1,3 +1,6 @@
+#include "linear.hpp"
+#include "relu.hpp"
+#include "sequential.hpp"
 #include "tensor2d.hpp"
 #include <cassert>
 #include <iostream>
@@ -851,6 +854,49 @@ void test_mat_mul_with_incompatible_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_linear_forward() {
+    std::cout << "Running test: Linear forward()... ";
+    Linear linear(2, 2);
+    linear.set_weights(Tensor2D::from_vector(2, 2, {1.0f, 0.0f, 0.0f, 1.0f}));
+    linear.set_bias(Tensor2D::from_vector(1, 2, {1.0f, 2.0f}));
+    Tensor2D input = Tensor2D::from_vector(1, 2, {3.0f, 4.0f});
+    Tensor2D output = linear.forward(input);
+    assert(output(0, 0) == 4.0f);
+    assert(output(0, 1) == 6.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_relu_forward() {
+    std::cout << "Running test: ReLU forward()... ";
+    ReLU relu;
+    Tensor2D input = Tensor2D::from_vector(1, 4, {-1.0f, 0.0f, 2.0f, 3.0f});
+    Tensor2D output = relu.forward(input);
+    assert(output(0, 0) == 0.0f);
+    assert(output(0, 1) == 0.0f);
+    assert(output(0, 2) == 2.0f);
+    assert(output(0, 3) == 3.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_sequential_forward() {
+    std::cout << "Running test: Sequential forward()... ";
+    Sequential sequential;
+    
+    auto linear = std::make_unique<Linear>(2, 2);
+    linear->set_weights(Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}));
+    linear->set_bias(Tensor2D::from_vector(1, 2, {0.0f, 0.0f}));
+
+    sequential.add(std::move(linear));
+    sequential.add(std::make_unique<ReLU>());
+
+    Tensor2D input = Tensor2D::from_vector(1, 2, {1.0f, 1.0f});
+    Tensor2D output = sequential.forward(input);
+
+    assert(output(0, 0) == 4.0f);
+    assert(output(0, 1) == 6.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -951,6 +997,11 @@ int main() {
     test_mat_mul_with_compatible_shapes();
     test_mat_mul_with_identity_matrix();
     test_mat_mul_with_incompatible_shapes();
+    std::cout << std::endl;
+
+    test_linear_forward();
+    test_relu_forward();
+    test_sequential_forward();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;

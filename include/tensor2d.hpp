@@ -362,7 +362,7 @@ public:
         return max;
     }
 
-    Tensor2D mat_mul(const Tensor2D& other) {
+    Tensor2D mat_mul(const Tensor2D& other) const {
         if (cols_ != other.rows_) {
             throw std::invalid_argument("Shape mismatch in mat_mul");
         }
