@@ -6,6 +6,7 @@ _Last updated: June 28, 2025_
 - [Basic Operations](#basic-operations)
 - [Arithmetic Operations](#arithmetic-operations)
 - [Matrix Operations](#matrix-operations)
+- [Neural Network Modules](#neural-network-modules)
 - [Reduction Operations](#reduction-operations)
 - [Element-wise Functions](#element-wise-functions)
 - [Shape and Reshaping](#shape-and-reshaping)
@@ -126,6 +127,133 @@ Tensor2D identity(2, 2);
 identity(0, 0) = 1.0f;
 identity(1, 1) = 1.0f;
 Tensor2D result = a.mat_mul(identity);  // a unchanged
+```
+
+## Neural Network Modules
+
+The library provides a modular neural network framework with a base `Module` class and several layer implementations.
+
+### Base Module Class
+```cpp
+#include "module.hpp"
+
+// All neural network layers inherit from Module
+class Module {
+public:
+    virtual Tensor2D forward(const Tensor2D& input) = 0;
+    virtual ~Module() = default;
+};
+```
+
+### Linear Layer
+```cpp
+#include "linear.hpp"
+
+// Create a linear layer with input and output dimensions
+Linear linear(4, 2);  // 4 input features, 2 output features
+
+// Set weights and bias (optional - default values are provided)
+linear.set_weights(Tensor2D::from_vector(4, 2, {
+    0.1f, 0.2f,
+    0.3f, 0.4f,
+    0.5f, 0.6f,
+    0.7f, 0.8f
+}));
+linear.set_bias(Tensor2D::from_vector(1, 2, {0.5f, 0.5f}));
+
+// Forward pass: output = input * weights + bias
+Tensor2D input = Tensor2D::from_vector(1, 4, {1.0f, 2.0f, 3.0f, 4.0f});
+Tensor2D output = linear.forward(input);
+```
+
+### ReLU Layer
+```cpp
+#include "relu.hpp"
+
+// Create a ReLU activation layer
+ReLU relu;
+
+// Forward pass: applies ReLU function (max(0, x)) to all elements
+Tensor2D input = Tensor2D::from_vector(1, 3, {-1.0f, 0.0f, 2.0f});
+Tensor2D output = relu.forward(input);  // Result: [0.0f, 0.0f, 2.0f]
+```
+
+### Sequential Container
+```cpp
+#include "sequential.hpp"
+
+// Create a sequential model to chain layers together
+Sequential model;
+
+// Add layers to the model
+auto linear1 = std::make_unique<Linear>(4, 2);
+linear1->set_weights(Tensor2D::from_vector(4, 2, {
+    0.1f, 0.2f,
+    0.3f, 0.4f,
+    0.5f, 0.6f,
+    0.7f, 0.8f
+}));
+linear1->set_bias(Tensor2D::from_vector(1, 2, {0.5f, 0.5f}));
+
+model.add(std::move(linear1));
+model.add(std::make_unique<ReLU>());
+
+// Forward pass through the entire model
+Tensor2D input = Tensor2D::from_vector(1, 4, {1.0f, 2.0f, 3.0f, 4.0f});
+Tensor2D output = model.forward(input);
+```
+
+### Complete Neural Network Example
+```cpp
+#include "sequential.hpp"
+#include "linear.hpp"
+#include "relu.hpp"
+#include "tensor2d.hpp"
+#include <iostream>
+
+int main() {
+    // Define a simple neural network: Linear -> ReLU -> Linear
+    Sequential model;
+    
+    // First layer: 4 inputs -> 2 outputs
+    auto linear1 = std::make_unique<Linear>(4, 2);
+    linear1->set_weights(Tensor2D::from_vector(4, 2, {
+        0.1f, 0.2f,
+        0.3f, 0.4f,
+        0.5f, 0.6f,
+        0.7f, 0.8f
+    }));
+    linear1->set_bias(Tensor2D::from_vector(1, 2, {0.5f, 0.5f}));
+    
+    // Second layer: 2 inputs -> 1 output
+    auto linear2 = std::make_unique<Linear>(2, 1);
+    linear2->set_weights(Tensor2D::from_vector(2, 1, {0.9f, 1.0f}));
+    linear2->set_bias(Tensor2D::from_vector(1, 1, {0.1f}));
+    
+    // Build the model
+    model.add(std::move(linear1));
+    model.add(std::make_unique<ReLU>());
+    model.add(std::move(linear2));
+    
+    // Run forward pass
+    Tensor2D input = Tensor2D::from_vector(1, 4, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor2D output = model.forward(input);
+    
+    std::cout << "Input:" << std::endl;
+    input.print();
+    
+    std::cout << "Output:" << std::endl;
+    output.print();
+    
+    return 0;
+}
+```
+
+### Building and Running Neural Network Examples
+```bash
+# Build and run the forward pass example
+g++ -std=c++17 -Iinclude -o build/forward_pass \
+examples/forward_pass.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/sequential.cpp && ./build/forward_pass
 ```
 
 ## Reduction Operations
@@ -263,7 +391,8 @@ try {
 
 ### Build and Run Tests
 ```bash
-g++ -std=c++17 -Iinclude -o build/test_runner tests/test_runner.cpp src/tensor2d.cpp && ./build/test_runner
+g++ -std=c++17 -Iinclude -o build/test_runner \
+tests/test_runner.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/sequential.cpp && ./build/test_runner
 ```
 
 This command does the following:
