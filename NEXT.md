@@ -1,17 +1,28 @@
-# Mini Tensor – Next Steps
+## Planned Extensions
 
-Short term
-- print() or to_string() for console output (row-major, optional formatting)
-- Reductions: sum(), mean(), max() for scalar aggregation
-- operator== for test assertions (shape + value equality)
+The project is expanding to support basic model execution, better broadcasting, and sub-tensor access. Upcoming features include:
 
-Stretch Goals (July)
-- matmul() or operator* for matrix multiplication (dim check + shape logic)
-- Views/slicing: row(i), submatrix(i, j, h, w)
-- Initializers: Tensor2D::zeros(), from_vector(...) for test ergonomics
+### Forward Pass and Modules
 
-Backlog 
-- expand() method for explicit broadcast-aware shape expansion  
-  - Signature: Tensor2D expand(size_t new_rows, size_t new_cols) const  
-  - Enables broadcasting outside of binary ops  
-  - Lays foundation for views or derived tensor types
+* Add a base `Module` class with a `forward()` method
+* Create `Linear` and `ReLU` layers
+* Add a `Sequential` container to run layers in order
+* Support running input through a simple model
+
+### Broadcasting Improvements
+
+* Add a helper to check compatible shapes
+* Use a shared function for `+`, `-`, `*`, and `/`
+* Make all arithmetic operations handle broadcasting consistently
+
+### Tensor Slicing and Views
+
+* Add support for getting sub-tensors without copying data
+* Let users slice tensors using row and column ranges
+* Start with read-only access, later allow updates
+
+### Export to Simple IR Format
+
+* Create a way to record what operations are run
+* Each layer can add to the recorded list
+* Allow exporting the model as a list or file for inspection
