@@ -178,6 +178,28 @@ Tensor2D input = Tensor2D::from_vector(1, 3, {-1.0f, 0.0f, 2.0f});
 Tensor2D output = relu.forward(input);  // Result: [0.0f, 0.0f, 2.0f]
 ```
 
+### Softmax Layer
+```cpp
+#include "softmax.hpp"
+
+// Create a Softmax activation layer
+Softmax softmax;
+
+// Forward pass: applies softmax function to each row independently
+// softmax(x_i) = exp(x_i) / sum(exp(x_j)) for all j in the row
+Tensor2D input = Tensor2D::from_vector(1, 4, {1.0f, 2.0f, 3.0f, 4.0f});
+Tensor2D output = softmax.forward(input);
+// Result: probabilities that sum to 1.0 for each row
+
+// For multiple rows, softmax is applied independently to each row
+Tensor2D batch_input = Tensor2D::from_vector(2, 3, {
+    1.0f, 2.0f, 3.0f,  // First row
+    4.0f, 5.0f, 6.0f   // Second row
+});
+Tensor2D batch_output = softmax.forward(batch_input);
+// Each row will have probabilities that sum to 1.0
+```
+
 ### Sequential Container
 ```cpp
 #include "sequential.hpp"
@@ -208,32 +230,38 @@ Tensor2D output = model.forward(input);
 #include "sequential.hpp"
 #include "linear.hpp"
 #include "relu.hpp"
+#include "softmax.hpp"
 #include "tensor2d.hpp"
 #include <iostream>
 
 int main() {
-    // Define a simple neural network: Linear -> ReLU -> Linear
+    // Define a neural network: Linear -> ReLU -> Linear -> Softmax
     Sequential model;
     
-    // First layer: 4 inputs -> 2 outputs
-    auto linear1 = std::make_unique<Linear>(4, 2);
-    linear1->set_weights(Tensor2D::from_vector(4, 2, {
-        0.1f, 0.2f,
-        0.3f, 0.4f,
-        0.5f, 0.6f,
-        0.7f, 0.8f
+    // First layer: 4 inputs -> 3 outputs
+    auto linear1 = std::make_unique<Linear>(4, 3);
+    linear1->set_weights(Tensor2D::from_vector(4, 3, {
+        0.1f, 0.2f, 0.3f,
+        0.4f, 0.5f, 0.6f,
+        0.7f, 0.8f, 0.9f,
+        1.0f, 1.1f, 1.2f
     }));
-    linear1->set_bias(Tensor2D::from_vector(1, 2, {0.5f, 0.5f}));
+    linear1->set_bias(Tensor2D::from_vector(1, 3, {0.1f, 0.2f, 0.3f}));
     
-    // Second layer: 2 inputs -> 1 output
-    auto linear2 = std::make_unique<Linear>(2, 1);
-    linear2->set_weights(Tensor2D::from_vector(2, 1, {0.9f, 1.0f}));
-    linear2->set_bias(Tensor2D::from_vector(1, 1, {0.1f}));
+    // Second layer: 3 inputs -> 3 outputs
+    auto linear2 = std::make_unique<Linear>(3, 3);
+    linear2->set_weights(Tensor2D::from_vector(3, 3, {
+        0.5f, 0.6f, 0.7f,
+        0.8f, 0.9f, 1.0f,
+        1.1f, 1.2f, 1.3f
+    }));
+    linear2->set_bias(Tensor2D::from_vector(1, 3, {0.1f, 0.1f, 0.1f}));
     
     // Build the model
     model.add(std::move(linear1));
     model.add(std::make_unique<ReLU>());
     model.add(std::move(linear2));
+    model.add(std::make_unique<Softmax>());
     
     // Run forward pass
     Tensor2D input = Tensor2D::from_vector(1, 4, {1.0f, 2.0f, 3.0f, 4.0f});
@@ -242,8 +270,12 @@ int main() {
     std::cout << "Input:" << std::endl;
     input.print();
     
-    std::cout << "Output:" << std::endl;
+    std::cout << "Output (probabilities):" << std::endl;
     output.print();
+    
+    // Verify that probabilities sum to 1.0
+    float sum = output.sum();
+    std::cout << "Sum of probabilities: " << sum << std::endl;
     
     return 0;
 }
@@ -253,7 +285,7 @@ int main() {
 ```bash
 # Build and run the forward pass example
 g++ -std=c++17 -Iinclude -o build/forward_pass \
-examples/forward_pass.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/sequential.cpp && ./build/forward_pass
+examples/forward_pass.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/forward_pass
 ```
 
 ## Reduction Operations
@@ -392,7 +424,7 @@ try {
 ### Build and Run Tests
 ```bash
 g++ -std=c++17 -Iinclude -o build/test_runner \
-tests/test_runner.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/sequential.cpp && ./build/test_runner
+tests/test_runner.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
 ```
 
 This command does the following:
