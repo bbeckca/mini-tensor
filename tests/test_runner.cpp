@@ -1,6 +1,7 @@
 #include "linear.hpp"
 #include "relu.hpp"
 #include "sequential.hpp"
+#include "softmax.hpp"
 #include "tensor2d.hpp"
 #include <cassert>
 #include <iostream>
@@ -897,6 +898,40 @@ void test_sequential_forward() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_softmax_forward() {
+    std::cout << "Running test: Softmax forward()... ";
+    Softmax softmax;
+
+    Tensor2D input = Tensor2D::from_vector(2, 3, {
+        1.0f, 2.0f, 3.0f,    // row 0 (deterministic)
+        0.0f, 0.0f, 0.0f     // row 1 (uniform)
+    });
+
+    Tensor2D output = softmax.forward(input);
+    assert(output.shape() == std::make_pair(2UL, 3UL));
+
+    // Check relative ordering in row 0: softmax(3) > softmax(2) > softmax(1)
+    assert(output(0, 2) > output(0, 1));
+    assert(output(0, 1) > output(0, 0));
+
+    // Check uniformity in row 1: softmax([0, 0, 0]) = [1/3, 1/3, 1/3]
+    float expected = 1.0f / 3.0f;
+    for (size_t j = 0; j < 3; ++j) {
+        assert(std::abs(output(1, j) - expected) < 1e-4f);
+    }
+
+    // Check that each row sums to ~1
+    for (size_t i = 0; i < 2; ++i) {
+        float row_sum = 0.0f;
+        for (size_t j = 0; j < 3; ++j) {
+            row_sum += output(i, j);
+        }
+        assert(std::abs(row_sum - 1.0f) < 1e-4f);
+    }
+
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -1002,6 +1037,7 @@ int main() {
     test_linear_forward();
     test_relu_forward();
     test_sequential_forward();
+    test_softmax_forward();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;
