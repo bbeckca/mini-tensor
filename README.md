@@ -1,6 +1,6 @@
 # Mini Tensor
 
-A lightweight 2D tensor library in C++ with PyTorch-style modules and forward pass support, to explore neural network internals and performance from first principles
+A simple C++ tensor library with PyTorch-style modules and forward pass support — for learning how neural nets work under the hood.
 
 ## Project Structure
 

@@ -1,28 +1,32 @@
-## Planned Extensions
+Planned Extensions
+This file tracks completed and upcoming features for the tensor library.
 
-The project is expanding to support basic model execution, better broadcasting, and sub-tensor access. Upcoming features include:
+## Tensor Slicing and Views (Completed)
+- Implemented `Tensor2DView` for non-owning, in-place slicing
+- Create views using `Tensor2DView(tensor, row_start, row_end, col_start, col_end)`
+- View reflects and updates the base tensor
+- Includes shape helpers, accessors, and bounds checking
+- Tested and documented
 
-### Forward Pass and Modules
+## Broadcasting (Completed)
+- Arithmetic operations (`+`, `-`, `*`, `/`) support shape broadcasting
+- Handles row and column expansion using `infer_broadcast_shape()`
+- Throws an error on incompatible shapes
+- Documented with examples and tests
 
-* Add a base `Module` class with a `forward()` method
-* Create `Linear` and `ReLU` layers
-* Add a `Sequential` container to run layers in order
-* Support running input through a simple model
+## Forward Pass and Modules (Completed)
+- `Module` base class with `forward()` interface
+- Includes `Linear`, `ReLU`, `Softmax`, and `Sequential` implementations
+- Supports chained execution via `Sequential::forward()`
+- Verified with working model in `forward_pass.cpp`
 
-### Broadcasting Improvements
+## MatMul Optimization (Next)
+- Integrate Eigen for faster `matmul()` implementation
+- Replace nested loops with `Eigen::Map` operations
+- Add performance benchmarks and correctness tests
+- Optional: compile-time toggle for raw vs Eigen backend
 
-* Add a helper to check compatible shapes
-* Use a shared function for `+`, `-`, `*`, and `/`
-* Make all arithmetic operations handle broadcasting consistently
-
-### Tensor Slicing and Views
-
-* Add support for getting sub-tensors without copying data
-* Let users slice tensors using row and column ranges
-* Start with read-only access, later allow updates
-
-### Export to Simple IR Format
-
-* Create a way to record what operations are run
-* Each layer can add to the recorded list
-* Allow exporting the model as a list or file for inspection
+## Export to Simple IR
+- Trace operations during forward pass
+- Export a minimal IR (e.g., JSON or list of operations)
+- Enables inspection and potential future transformations
