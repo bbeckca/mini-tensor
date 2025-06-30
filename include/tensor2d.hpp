@@ -2,6 +2,7 @@
 #include <vector>
 #include <iostream>
 #include <stdexcept>
+#include <Eigen/Dense>
 
 class Tensor2D {
 
@@ -12,6 +13,9 @@ private:
 public:
     Tensor2D(size_t rows, size_t cols, float val=0)
         : rows_(rows), cols_(cols), data_(rows * cols, val) {}
+
+    float* data() { return data_.data(); }
+    const float* data() const { return data_.data(); }
 
     float& operator()(size_t row, size_t col) {
         if (row >= rows_ || col >= cols_) {
@@ -381,6 +385,25 @@ public:
         }
         return result;
     }
+
+    Tensor2D mat_mul_eigen(const Tensor2D& other) const {
+        if (cols_ != other.rows_) {
+            throw std::invalid_argument("Shape mismatch in mat_mul_eigen");
+        }
+
+        Tensor2D result(rows_, other.cols_);
+
+        using MatrixRM = Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic, Eigen::RowMajor>;
+
+        Eigen::Map<const MatrixRM> A(this->data(), rows_, cols_);
+        Eigen::Map<const MatrixRM> B(other.data(), other.rows_, other.cols_);
+        Eigen::Map<MatrixRM> C(result.data(), result.rows_, result.cols_);
+
+        C.noalias() = A * B;
+
+        return result;
+    }
+
 
     std::pair<size_t, size_t> arg_max() const {
         float max = (*this)(0, 0);
