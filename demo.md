@@ -202,6 +202,31 @@ identity(1, 1) = 1.0f;
 Tensor2D result = a.mat_mul(identity);  // a unchanged
 ```
 
+### Eigen Matrix Multiplication
+The library also provides an Eigen-based matrix multiplication implementation for comparison:
+
+```cpp
+// Eigen-based matrix multiplication
+Tensor2D result = a.mat_mul_eigen(b);
+```
+
+#### Performance Comparison
+Benchmark results comparing manual implementation vs Eigen:
+
+| Matrix Size | Manual (μs) | Eigen (μs) | Speedup |
+|-------------|-------------|------------|---------|
+| 16×16       | 48          | 154        | 0.31x   |
+| 128×128     | 16,960      | 3,437      | 4.93x   |
+| 256×512     | 92,871      | 19,086     | 4.87x   |
+| 512×512     | 691,489     | 149,118    | 4.64x   |
+| 1024×1024   | 5,633,871   | 1,214,421  | 4.64x   |
+
+**Key observations:**
+- For small matrices (16×16), the manual implementation is faster due to lower overhead
+- For larger matrices (128×128 and above), Eigen provides significant speedup (~4.6-4.9x)
+- Eigen's optimized BLAS implementation scales better with matrix size
+- The manual implementation uses a naive O(n³) algorithm, while Eigen uses optimized algorithms
+
 ## Neural Network Modules
 
 The library provides a modular neural network framework with a base `Module` class and several layer implementations.
@@ -357,7 +382,7 @@ int main() {
 ### Building and Running Neural Network Examples
 ```bash
 # Build and run the forward pass example
-g++ -std=c++17 -Iinclude -o build/forward_pass \
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/forward_pass \
 examples/forward_pass.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/forward_pass
 ```
 
@@ -496,7 +521,7 @@ try {
 
 ### Build and Run Tests
 ```bash
-g++ -std=c++17 -Iinclude -o build/test_runner \
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/test_runner \
 tests/test_runner.cpp src/tensor2d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
 ```
 
@@ -504,19 +529,21 @@ This command does the following:
 - `g++`: Invokes the C++ compiler.
 - `-std=c++17`: Uses the C++17 standard.
 - `-Iinclude`: Tells the compiler to look for header files in the `include` directory.
+- `-Ithird_party/eigen`: Tells the compiler to look for Eigen header files.
 - `-o build/test_runner`: Specifies the output executable name and location.
 - `tests/test_runner.cpp src/tensor2d.cpp src/tensor2d_view.cpp`: The source files to compile.
 - `&& ./build/test_runner`: Runs the compiled program if the build was successful.
 
 ### Build and Run Benchmark
 ```bash
-g++ -std=c++17 -Iinclude -o build/benchmark benchmark.cpp src/tensor2d.cpp && ./build/benchmark
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/benchmark benchmark.cpp src/tensor2d.cpp && ./build/benchmark
 ```
 
 This command does the following:
 - `g++`: Invokes the C++ compiler.
 - `-std=c++17`: Uses the C++17 standard.
 - `-Iinclude`: Tells the compiler to look for header files in the `include` directory.
+- `-Ithird_party/eigen`: Tells the compiler to look for Eigen header files.
 - `-o build/benchmark`: Specifies the output executable name and location.
 - `benchmark.cpp src/tensor2d.cpp`: The source files to compile.
 - `&& ./build/benchmark`: Runs the compiled program if the build was successful.

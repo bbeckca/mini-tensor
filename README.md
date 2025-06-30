@@ -34,13 +34,13 @@ mini-tensor/
 
 ### Run Tests
 ```bash
-g++ -std=c++17 -Iinclude -o build/test_runner \
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/test_runner \
 tests/test_runner.cpp src/tensor2d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
 ```
 
 ### Run Neural Network Example
 ```bash
-g++ -std=c++17 -Iinclude -o build/forward_pass \
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/forward_pass \
 examples/forward_pass.cpp src/tensor2d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/forward_pass
 ```
 
