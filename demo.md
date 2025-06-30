@@ -4,6 +4,7 @@ _Last updated: June 28, 2025_
 ## Table of Contents
 - [Constructors](#constructors)
 - [Basic Operations](#basic-operations)
+- [Tensor2DView and Slicing](#tensor2dview-and-slicing)
 - [Arithmetic Operations](#arithmetic-operations)
 - [Matrix Operations](#matrix-operations)
 - [Neural Network Modules](#neural-network-modules)
@@ -56,6 +57,56 @@ tensor.fill(42.0f);
 // Print tensor contents
 tensor.print();
 ```
+
+## Tensor2DView and Slicing
+
+`Tensor2DView` provides a non-owning view (slice) into a subregion of a `Tensor2D` without copying data. Modifying the view updates the original tensor.
+
+### Creating a View (Slice)
+```cpp
+#include "tensor2d_view.hpp"
+
+Tensor2D base(4, 4);
+// Fill base tensor for demonstration
+for (size_t i = 0; i < 4; ++i)
+    for (size_t j = 0; j < 4; ++j)
+        base(i, j) = i * 4 + j;
+
+// Create a view of rows 1-2 and cols 1-2 (exclusive of end)
+Tensor2DView view(base, 1, 3, 1, 3);  // 2x2 view of the center
+```
+
+### Accessing and Modifying Elements
+```cpp
+float value = view(0, 1);      // Access element at (0,1) in the view
+view(0, 0) = 42.0f;            // Modify element in the view (also updates base tensor)
+```
+
+### Shape and Properties
+```cpp
+auto [rows, cols] = view.shape();  // Get view dimensions
+bool empty = view.is_empty();      // Check if view is empty
+```
+
+### Printing a View
+```cpp
+view.print();  // Print the contents of the view
+```
+
+### Example: View Reflects Base Tensor Changes
+```cpp
+// Changing the view updates the base tensor
+view(0, 0) = 99.0f;
+std::cout << base(1, 1) << std::endl;  // Prints 99.0
+```
+
+### Out-of-Bounds Handling
+Accessing outside the view's shape throws `std::out_of_range`.
+
+### Notes
+- Views do not own data; they reference the original tensor.
+- Slicing is defined by `[row_start, row_end)` and `[col_start, col_end)` (end-exclusive).
+- Modifying a view modifies the base tensor.
 
 ## Arithmetic Operations
 
