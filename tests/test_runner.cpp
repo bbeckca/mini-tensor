@@ -3,6 +3,7 @@
 #include "sequential.hpp"
 #include "softmax.hpp"
 #include "tensor2d.hpp"
+#include "tensor2d_view.hpp"
 #include <cassert>
 #include <iostream>
 #include <numeric>
@@ -183,11 +184,14 @@ void test_addition_with_incompatible_broadcast_shapes() {
     Tensor2D t2(3, 2);
     t2.fill(41.0f);
 
+    bool exception_thrown = false;
     try {
         Tensor2D t3 = t1 + t2;
-    } catch (const std::invalid_argument& e) {
-        std::cout << "PASSED" << std::endl;
+    } catch (const std::invalid_argument& e) { 
+        exception_thrown = true;
     }
+    assert(exception_thrown);
+        std::cout << "PASSED" << std::endl;
 }
 
 void test_addition_in_place_with_same_shapes() {
@@ -932,6 +936,44 @@ void test_softmax_forward() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_tensor2d_view() {
+    std::cout << "Running test: Tensor2DView... ";
+    size_t rows = 4, cols = 4;
+    Tensor2D base(rows, cols);
+    for (size_t i = 0; i < rows; ++i) {
+        for (size_t j = 0; j < cols; ++j) {
+            base(i, j) = i * cols + j;
+        }
+    }
+    
+    Tensor2DView view(base, 1, 3, 1, 3);
+    assert(view.rows() == 2);
+    assert(view.cols() == 2);
+    for (size_t i = 0; i < view.rows(); ++i) {
+        for (size_t j = 0; j < view.cols(); ++j) {
+            assert(view(i, j) == base(i + 1, j + 1));
+        }
+    }
+
+    view(0, 0) = 42.0f;
+    assert(base(1, 1) == 42.0f);
+
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor2d_view_out_of_bounds() {
+    std::cout << "Running test: Tensor2DView out of bounds... ";
+    Tensor2D base(4, 4);
+    bool exception_thrown = false;
+    try {
+        Tensor2DView view(base, 1, 3, 1, 6);
+    } catch (const std::out_of_range& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -1038,6 +1080,9 @@ int main() {
     test_relu_forward();
     test_sequential_forward();
     test_softmax_forward();
+    std::cout << std::endl;
+
+    test_tensor2d_view();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;

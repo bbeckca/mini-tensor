@@ -424,7 +424,7 @@ try {
 ### Build and Run Tests
 ```bash
 g++ -std=c++17 -Iinclude -o build/test_runner \
-tests/test_runner.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
+tests/test_runner.cpp src/tensor2d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
 ```
 
 This command does the following:
@@ -432,7 +432,7 @@ This command does the following:
 - `-std=c++17`: Uses the C++17 standard.
 - `-Iinclude`: Tells the compiler to look for header files in the `include` directory.
 - `-o build/test_runner`: Specifies the output executable name and location.
-- `tests/test_runner.cpp src/tensor2d.cpp`: The source files to compile.
+- `tests/test_runner.cpp src/tensor2d.cpp src/tensor2d_view.cpp`: The source files to compile.
 - `&& ./build/test_runner`: Runs the compiled program if the build was successful.
 
 ### Build and Run Benchmark

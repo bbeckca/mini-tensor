@@ -12,6 +12,8 @@ mini-tensor/
 │   ├── linear.hpp           # Linear layer
 │   ├── relu.hpp             # ReLU activation layer
 │   ├── softmax.hpp          # Softmax activation layer
+│   ├── sequential.hpp       # Sequential container
+│   ├── tensor2d_view.hpp   # Tensor2DView public interface
 │   └── sequential.hpp       # Sequential container
 ├── src/
 │   ├── tensor2d.cpp         # Tensor2D implementation
@@ -33,13 +35,13 @@ mini-tensor/
 ### Run Tests
 ```bash
 g++ -std=c++17 -Iinclude -o build/test_runner \
-tests/test_runner.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
+tests/test_runner.cpp src/tensor2d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
 ```
 
 ### Run Neural Network Example
 ```bash
 g++ -std=c++17 -Iinclude -o build/forward_pass \
-examples/forward_pass.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/forward_pass
+examples/forward_pass.cpp src/tensor2d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/forward_pass
 ```
 
 ## Features
@@ -50,4 +52,5 @@ examples/forward_pass.cpp src/tensor2d.cpp src/linear.cpp src/relu.cpp src/softm
 - **Performance**: Contiguous memory layout for efficient cache access
 
 📖 Full API docs and usage examples → [See demo.md](demo.md)
+
 
