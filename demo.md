@@ -110,6 +110,28 @@ Accessing outside the view's shape throws `std::out_of_range`.
 
 ## Arithmetic Operations
 
+### Broadcasting Overview
+
+`Tensor2D` supports NumPy-style broadcasting for all arithmetic operations (`+`, `-`, `*`, `/`). When operating on tensors of different shapes, dimensions of size 1 are automatically expanded to match the other tensor, following standard broadcasting rules.
+
+Broadcasting allows operations between tensors of different, but compatible, shapes.  
+- If a dimension is `1` in one tensor and `N` in the other, the size-1 dimension is **stretched**.  
+- If shapes are incompatible, an exception is thrown.
+
+The same broadcasting rules apply for -, *, and / operators.
+
+### Example: Broadcasting with Addition
+
+```cpp
+Tensor2D a(1, 3);         // Shape: 1x3
+a.fill(1.0f);
+
+Tensor2D b(2, 1);         // Shape: 2x1
+b.fill(2.0f);
+
+Tensor2D result = a + b;  // Broadcasted to 2x3, all elements = 3.0f
+```
+
 ### Addition
 ```cpp
 // Tensor + Tensor (with broadcasting)
