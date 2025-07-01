@@ -17,6 +17,9 @@ public:
     float* data() { return data_.data(); }
     const float* data() const { return data_.data(); }
 
+    size_t rows() const { return rows_; }
+    size_t cols() const { return cols_; }
+
     float& operator()(size_t row, size_t col) {
         if (row >= rows_ || col >= cols_) {
             throw std::out_of_range("Index out of bounds");

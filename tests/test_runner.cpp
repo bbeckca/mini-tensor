@@ -4,6 +4,7 @@
 #include "softmax.hpp"
 #include "tensor2d.hpp"
 #include "tensor2d_view.hpp"
+#include "tensor3d.hpp"
 #include <cassert>
 #include <iostream>
 #include <numeric>
@@ -986,6 +987,32 @@ void test_tensor2d_view_out_of_bounds() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_tensor3d_constructor_and_shape() {
+    std::cout << "Running test: Tensor3D constructor and shape... ";
+    Tensor3D t3d(2, 3, 4, 7.0f);
+    assert(t3d.batch() == 2);
+    assert(t3d.rows() == 3);
+    assert(t3d.cols() == 4);
+    for (size_t b = 0; b < t3d.batch(); ++b) {
+        for (size_t i = 0; i < t3d.rows(); ++i) {
+            for (size_t j = 0; j < t3d.cols(); ++j) {
+                assert(t3d[b](i, j) == 7.0f);
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_element_access_and_mutation() {
+    std::cout << "Running test: Tensor3D element access and mutation... ";
+    Tensor3D t3d(2, 2, 2, 0.0f);
+    t3d[0](0, 0) = 1.0f;
+    t3d[1](1, 1) = 2.0f;
+    assert(t3d[0](0, 0) == 1.0f);
+    assert(t3d[1](1, 1) == 2.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -1101,6 +1128,11 @@ int main() {
     std::cout << std::endl;
 
     test_tensor2d_view();
+    std::cout << std::endl;
+
+
+    test_tensor3d_constructor_and_shape();
+    test_tensor3d_element_access_and_mutation();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;
