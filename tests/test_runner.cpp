@@ -873,6 +873,42 @@ void test_mat_mul_eigen_with_same_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_mat_mul_eigen_with_compatible_shapes() {
+    std::cout << "Running test: mat_mul_eigen() with compatible shapes... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor2D t2 = Tensor2D::from_vector(3, 1, {1.0f, 0.0f, -1.0f});
+    Tensor2D t3 = t1.mat_mul_eigen(t2);
+    assert(t3(0, 0) == -2.0f);
+    assert(t3(1, 0) == -2.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mat_mul_eigen_with_identity_matrix() {
+    std::cout << "Running test: mat_mul_eigen() with identity matrix... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor2D t2 = Tensor2D::from_vector(2, 2, {1.0f, 0.0f, 0.0f, 1.0f});
+    Tensor2D t3 = t1.mat_mul_eigen(t2);
+    assert(t3(0, 0) == 1.0f);
+    assert(t3(0, 1) == 2.0f);
+    assert(t3(1, 0) == 3.0f);
+    assert(t3(1, 1) == 4.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mat_mul_eigen_with_incompatible_shapes() {
+    std::cout << "Running test: mat_mul_eigen() with incompatible shapes... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f});
+    Tensor2D t2 = Tensor2D::from_vector(3, 2, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    bool exception_thrown = false;
+    try {
+        Tensor2D t3 = t1.mat_mul_eigen(t2);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_linear_forward() {
     std::cout << "Running test: Linear forward()... ";
     Linear linear(2, 2);
@@ -1117,9 +1153,9 @@ int main() {
     std::cout << std::endl;
 
     test_mat_mul_eigen_with_same_shapes();
-    // test_mat_mul_eigen_with_compatible_shapes();
-    // test_mat_mul_eigen_with_identity_matrix();
-    // test_mat_mul_eigen_with_incompatible_shapes();
+    test_mat_mul_eigen_with_compatible_shapes();
+    test_mat_mul_eigen_with_identity_matrix();
+    test_mat_mul_eigen_with_incompatible_shapes();
     std::cout << std::endl;
 
     test_linear_forward();
