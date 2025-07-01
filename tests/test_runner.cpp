@@ -5,6 +5,7 @@
 #include "tensor2d.hpp"
 #include "tensor2d_view.hpp"
 #include "tensor3d.hpp"
+#include "tensor3d.hpp"
 #include <cassert>
 #include <iostream>
 #include <numeric>
@@ -990,10 +991,10 @@ void test_tensor2d_view_out_of_bounds() {
 void test_tensor3d_constructor_and_shape() {
     std::cout << "Running test: Tensor3D constructor and shape... ";
     Tensor3D t3d(2, 3, 4, 7.0f);
-    assert(t3d.batch() == 2);
+    assert(t3d.batch_size() == 2);
     assert(t3d.rows() == 3);
     assert(t3d.cols() == 4);
-    for (size_t b = 0; b < t3d.batch(); ++b) {
+    for (size_t b = 0; b < t3d.batch_size(); ++b) {
         for (size_t i = 0; i < t3d.rows(); ++i) {
             for (size_t j = 0; j < t3d.cols(); ++j) {
                 assert(t3d[b](i, j) == 7.0f);
