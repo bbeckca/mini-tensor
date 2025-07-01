@@ -1,4 +1,4 @@
-# Tensor2D Demo and Feature Documentation
+# Tensor2D and Tensor3D Demo and Feature Documentation
 _Last updated: June 28, 2025_
 
 ## Table of Contents
@@ -7,6 +7,7 @@ _Last updated: June 28, 2025_
 - [Tensor2DView and Slicing](#tensor2dview-and-slicing)
 - [Arithmetic Operations](#arithmetic-operations)
 - [Matrix Operations](#matrix-operations)
+- [Tensor3D and Batched Matrix Operations](#tensor3d-and-batched-matrix-operations)
 - [Neural Network Modules](#neural-network-modules)
 - [Reduction Operations](#reduction-operations)
 - [Element-wise Functions](#element-wise-functions)
@@ -226,6 +227,70 @@ Benchmark results comparing manual implementation vs Eigen:
 - For larger matrices (128×128 and above), Eigen provides significant speedup (~4.6-4.9x)
 - Eigen's optimized BLAS implementation scales better with matrix size
 - The manual implementation uses a naive O(n³) algorithm, while Eigen uses optimized algorithms
+
+## Tensor3D and Batched Matrix Operations
+
+`Tensor3D` provides support for batched 2D tensors and batched matrix multiplication, enabling efficient operations on a stack of matrices (e.g., for mini-batch neural network computations).
+
+### Tensor3D API
+
+```cpp
+#include "tensor3d.hpp"
+
+// Construct a batch of 2D tensors (e.g., 8 matrices of shape 16x16, filled with 1.0f)
+Tensor3D batch(8, 16, 16, 1.0f);
+
+// Access a specific matrix in the batch
+Tensor2D& mat = batch[0];
+
+// Get batch size and shape
+size_t batch_size = batch.batch_size();
+size_t rows = batch.rows();
+size_t cols = batch.cols();
+
+// Batched matrix multiplication (manual and Eigen)
+Tensor3D A(batch, M, K, 1.0f);
+Tensor3D B(batch, K, N, 2.0f);
+Tensor3D C_manual = A.mat_mul(B);        // Manual implementation
+Tensor3D C_eigen  = A.mat_mul_eigen(B);  // Eigen-accelerated
+```
+
+### Batched Matrix Multiplication Benchmarks
+
+| Batch × M × K × N         | Manual (μs) | Eigen (μs) | Speedup |
+|---------------------------|-------------|------------|---------|
+| 8 × 16 × 16 × 16          | 201         | 107        | 1.88x   |
+| 16 × 64 × 64 × 64         | 21,540      | 5,862      | 3.67x   |
+| 32 × 128 × 128 × 128      | 341,745     | 82,403     | 4.15x   |
+| 8 × 256 × 512 × 128       | 703,684     | 154,383    | 4.56x   |
+| 4 × 512 × 512 × 512       | 2,719,196   | 615,204    | 4.42x   |
+| 2 × 1024 × 1024 × 1024    | 11,285,845  | 2,450,181  | 4.61x   |
+
+**Key observations:**
+- For small batches/matrices, manual implementation can be competitive.
+- For larger batches and matrices, Eigen provides significant speedup (3.7x–4.6x).
+- Batched matmul is essential for deep learning and large-scale computations.
+
+### Example: Batched Matrix Multiplication
+```cpp
+#include "tensor3d.hpp"
+#include <iostream>
+
+int main() {
+    Tensor3D A(8, 16, 16, 1.0f);
+    Tensor3D B(8, 16, 16, 2.0f);
+    Tensor3D C = A.mat_mul(B); // Manual batched matmul
+    Tensor3D D = A.mat_mul_eigen(B); // Eigen batched matmul
+    std::cout << "C[0](0,0): " << C[0](0,0) << std::endl;
+    std::cout << "D[0](0,0): " << D[0](0,0) << std::endl;
+    return 0;
+}
+```
+
+### Testing and Building
+- Tensor3D is tested in `tests/test_runner.cpp` (see [README](README.md) for test commands).
+- Most implementation is in the header (`include/tensor3d.hpp`). The `.cpp` file is provided for completeness.
+- See [README](README.md) for build/test/benchmark instructions including Tensor3D.
 
 ## Neural Network Modules
 
@@ -522,7 +587,7 @@ try {
 ### Build and Run Tests
 ```bash
 g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/test_runner \
-tests/test_runner.cpp src/tensor2d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
+tests/test_runner.cpp src/tensor2d.cpp src/tensor3d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
 ```
 
 This command does the following:
@@ -531,12 +596,12 @@ This command does the following:
 - `-Iinclude`: Tells the compiler to look for header files in the `include` directory.
 - `-Ithird_party/eigen`: Tells the compiler to look for Eigen header files.
 - `-o build/test_runner`: Specifies the output executable name and location.
-- `tests/test_runner.cpp src/tensor2d.cpp src/tensor2d_view.cpp`: The source files to compile.
+- `tests/test_runner.cpp src/tensor2d.cpp src/tensor3d.cpp src/tensor2d_view.cpp`: The source files to compile.
 - `&& ./build/test_runner`: Runs the compiled program if the build was successful.
 
 ### Build and Run Benchmark
 ```bash
-g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/benchmark benchmark.cpp src/tensor2d.cpp && ./build/benchmark
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/benchmark benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp && ./build/benchmark
 ```
 
 This command does the following:
@@ -545,7 +610,7 @@ This command does the following:
 - `-Iinclude`: Tells the compiler to look for header files in the `include` directory.
 - `-Ithird_party/eigen`: Tells the compiler to look for Eigen header files.
 - `-o build/benchmark`: Specifies the output executable name and location.
-- `benchmark.cpp src/tensor2d.cpp`: The source files to compile.
+- `benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp`: The source files to compile.
 - `&& ./build/benchmark`: Runs the compiled program if the build was successful.
 
 ## Complete Example
