@@ -20,11 +20,16 @@ This file tracks completed and upcoming features for the tensor library.
 - Supports chained execution via `Sequential::forward()`
 - Verified with working model in `forward_pass.cpp`
 
-## MatMul Optimization (Next)
-- Integrate Eigen for faster `matmul()` implementation
-- Replace nested loops with `Eigen::Map` operations
-- Add performance benchmarks and correctness tests
+## MatMul Optimization (Completed)
+- Integrated Eigen for faster `matmul()` implementation
+- Replaced nested loops with `Eigen::Map` operations
+- Added performance benchmarks and correctness tests
 - Optional: compile-time toggle for raw vs Eigen backend
+
+## Next: MatMul Parallelism
+- Add parallelism to matrix multiplication operations
+- Explore multi-threading for further speedup
+- Benchmark and test parallel implementations
 
 ## Export to Simple IR
 - Trace operations during forward pass
