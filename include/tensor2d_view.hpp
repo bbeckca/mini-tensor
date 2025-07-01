@@ -12,7 +12,11 @@ private:
 
 public:
     Tensor2DView(Tensor2D& tensor, size_t row_start, size_t row_end, size_t col_start, size_t col_end)
-        : tensor_(tensor), row_start(row_start), row_end(row_end), col_start(col_start), col_end(col_end) {}
+        : tensor_(tensor), row_start(row_start), row_end(row_end), col_start(col_start), col_end(col_end) {
+        if (row_start >= tensor.rows() || row_end >= tensor.rows() || col_start >= tensor.cols() || col_end >= tensor.cols()) {
+            throw std::out_of_range("Index out of bounds");
+        }
+    }
 
     size_t rows() const { return row_end - row_start; }
     size_t cols() const { return col_end - col_start; }

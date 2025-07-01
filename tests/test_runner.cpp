@@ -1129,6 +1129,7 @@ int main() {
     std::cout << std::endl;
 
     test_tensor2d_view();
+    test_tensor2d_view_out_of_bounds();
     std::cout << std::endl;
 
 
