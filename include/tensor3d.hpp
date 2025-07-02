@@ -1,6 +1,7 @@
 #pragma once
 #include "tensor2d.hpp"
 #include <vector>
+#include <Eigen/Core>
 
 class Tensor3D {
 private:
@@ -45,6 +46,7 @@ public:
         if (this->cols() != other.rows()) {
             throw std::invalid_argument("Shape mismatch in mat_mul_eigen");
         }
+        Eigen::setNbThreads(1);
         Tensor3D result(this->batch_size(), this->rows(), other.cols());
         #pragma omp parallel for
         for (size_t i = 0; i < this->batch_size(); ++i) {

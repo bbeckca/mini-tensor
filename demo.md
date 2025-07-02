@@ -257,21 +257,22 @@ Tensor3D C_eigen  = A.mat_mul_eigen(B);  // Eigen-accelerated
 
 ### Batched Matrix Multiplication Benchmarks
 
-| Batch × M × K × N         | Manual (μs) | Eigen (μs) | Speedup |
-|---------------------------|-------------|------------|---------|
-| 8 × 16 × 16 × 16          | 201         | 107        | 1.88x   |
-| 16 × 64 × 64 × 64         | 21,540      | 5,862      | 3.67x   |
-| 32 × 128 × 128 × 128      | 341,745     | 82,403     | 4.15x   |
-| 8 × 256 × 512 × 128       | 703,684     | 154,383    | 4.56x   |
-| 4 × 512 × 512 × 512       | 2,719,196   | 615,204    | 4.42x   |
-| 2 × 1024 × 1024 × 1024    | 11,285,845  | 2,450,181  | 4.61x   |
+| Batch × M × K × N         | Manual (μs) | Eigen (μs) | Eigen Parallel (μs) | Speedup | Speedup (Parallel) |
+|---------------------------|-------------|------------|---------------------|---------|--------------------|
+| 8 × 16 × 16 × 16          | 259         | 79         | 129                 | 3.28x   | 2.01x              |
+| 16 × 64 × 64 × 64         | 29,490      | 2,233      | 923                 | 13.21x  | 31.95x             |
+| 32 × 128 × 128 × 128      | 461,121     | 21,028     | 8,985               | 21.93x  | 51.33x             |
+| 8 × 256 × 512 × 128       | 904,623     | 29,978     | 18,751              | 30.18x  | 48.26x             |
+| 4 × 512 × 512 × 512       | 3,636,260   | 88,458     | 142,519             | 41.11x  | 25.52x             |
+| 2 × 1024 × 1024 × 1024    | 14,824,380  | 260,751    | 1,110,492           | 56.85x  | 13.35x             |
 
 **Key observations:**
 - For small batches/matrices, manual implementation can be competitive.
-- For larger batches and matrices, Eigen provides significant speedup (3.7x–4.6x).
+- For larger batches and matrices, Eigen provides significant speedup (13x–57x), and parallelization can further improve performance, especially for medium-to-large batch sizes.
+- For very large matrices, parallelization may have diminishing returns due to thread overhead.
 - Batched matmul is essential for deep learning and large-scale computations.
 
-### Example: Batched Matrix Multiplication
+### Example: Batched Matrix Multiplication (with Parallel Eigen)
 ```cpp
 #include "tensor3d.hpp"
 #include <iostream>
@@ -281,8 +282,10 @@ int main() {
     Tensor3D B(8, 16, 16, 2.0f);
     Tensor3D C = A.mat_mul(B); // Manual batched matmul
     Tensor3D D = A.mat_mul_eigen(B); // Eigen batched matmul
+    Tensor3D E = A.mat_mul_eigen_parallel(B); // Eigen batched matmul (parallel)
     std::cout << "C[0](0,0): " << C[0](0,0) << std::endl;
     std::cout << "D[0](0,0): " << D[0](0,0) << std::endl;
+    std::cout << "E[0](0,0): " << E[0](0,0) << std::endl;
     return 0;
 }
 ```
@@ -663,13 +666,14 @@ int main() {
 ## Performance Notes
 
 - The library uses contiguous memory layout for efficient cache access
-- Matrix multiplication uses naive O(n³) algorithm - suitable for small matrices
+- Manual matrix multiplication uses a naive O(n³) algorithm—suitable only for small matrices
+- Eigen-based matrix multiplication (including parallel) uses highly optimized algorithms (cache blocking, SIMD, and multi-threading), making it efficient for both small and large matrices
 - Broadcasting operations create new tensors rather than views
 - In-place operations are available for better performance when possible
 
 ## Limitations
 
-- Only supports 2D tensors
+- Only supports 2D, 3D tensors
 - Limited to float data type
 - No GPU acceleration
 - No automatic differentiation
