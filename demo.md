@@ -34,6 +34,12 @@ std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f};
 Tensor2D tensor = Tensor2D::from_vector(2, 2, data);
 ```
 
+### From Random
+```cpp
+// Create a 3x4 tensor with random values in [0, 1)
+Tensor2D tensor = Tensor2D::from_random(3, 4);
+```
+
 ## Basic Operations
 
 ### Element Access
@@ -239,6 +245,9 @@ Benchmark results comparing manual implementation vs Eigen:
 
 // Construct a batch of 2D tensors (e.g., 8 matrices of shape 16x16, filled with 1.0f)
 Tensor3D batch(8, 16, 16, 1.0f);
+
+// Construct a batch of 2D tensors with random values in [0, 1)
+Tensor3D random_batch = Tensor3D::from_random(8, 16, 16);
 
 // Access a specific matrix in the batch
 Tensor2D& mat = batch[0];

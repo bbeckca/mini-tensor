@@ -49,6 +49,20 @@ void test_from_vector() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_from_random() {
+    std::cout << "Running test: from_random()... ";
+    size_t rows = 2, cols = 3;
+    Tensor2D t = Tensor2D::from_random(rows, cols);
+    assert(t.shape().first == rows);
+    assert(t.shape().second == cols);
+    for (size_t i = 0; i < rows; ++i) {
+        for (size_t j = 0; j < cols; ++j) {
+            assert(t(i, j) >= 0.0f && t(i, j) <= 1.0f);
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_shape() {
     std::cout << "Running test: shape()... ";
     Tensor2D t1(4, 5);
@@ -1050,6 +1064,22 @@ void test_tensor3d_element_access_and_mutation() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_tensor3d_from_random() {
+    std::cout << "Running test: Tensor3D from_random... ";
+    Tensor3D t3d = Tensor3D::from_random(2, 2, 2);
+    assert(t3d.batch_size() == 2);
+    assert(t3d.rows() == 2);
+    assert(t3d.cols() == 2);
+    for (size_t b = 0; b < t3d.batch_size(); ++b) {
+        for (size_t i = 0; i < t3d.rows(); ++i) {
+            for (size_t j = 0; j < t3d.cols(); ++j) {
+                assert(t3d[b](i, j) >= 0.0f && t3d[b](i, j) <= 1.0f);
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_tensor3d_mat_mul() {
     std::cout << "Running test: Tensor3D mat_mul... ";
 
@@ -1156,6 +1186,7 @@ int main() {
     test_constructor_with_default_value();
     test_fill_and_operator_parentheses();
     test_from_vector();
+    test_from_random();
     std::cout << std::endl;
 
     test_tensor_equality();
@@ -1258,6 +1289,7 @@ int main() {
 
     test_tensor3d_constructor_and_shape();
     test_tensor3d_element_access_and_mutation();
+    test_tensor3d_from_random();
     std::cout << std::endl;
 
     test_tensor3d_mat_mul();

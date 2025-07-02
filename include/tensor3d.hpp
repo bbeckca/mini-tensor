@@ -54,4 +54,12 @@ public:
         }
         return result;
     }
+
+    static Tensor3D from_random(size_t batch, size_t rows, size_t cols) {
+        Tensor3D result(batch, rows, cols);
+        for (size_t i = 0; i < batch; ++i) {
+            result[i] = Tensor2D::from_random(rows, cols);
+        }
+        return result;
+    }
 };

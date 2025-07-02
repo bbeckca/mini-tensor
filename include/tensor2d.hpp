@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdlib>
 #include <vector>
 #include <iostream>
 #include <stdexcept>
@@ -47,6 +48,16 @@ public:
         }
         Tensor2D result(rows, cols);
         std::copy(data.begin(), data.end(), result.data_.begin());
+        return result;
+    }
+
+    static Tensor2D from_random(size_t rows, size_t cols) {
+        Tensor2D result(rows, cols);
+        for (size_t i = 0; i < rows; ++i) {
+            for (size_t j = 0; j < cols; ++j) {
+                result(i, j) = std::rand() / (float)RAND_MAX;
+            }
+        }
         return result;
     }
 
