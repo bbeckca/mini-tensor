@@ -1108,6 +1108,35 @@ void test_tensor3d_mat_mul_eigen() {
     std::cout << "PASSED\n";
 }
 
+void test_tensor3d_mat_mul_eigen_parallel() {
+    std::cout << "Running test: Tensor3D mat_mul_eigen_parallel... ";
+
+    Tensor3D t1(2, 2, 2);
+    Tensor3D t2(2, 2, 2);
+
+    t1[0] = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f});
+    t2[0] = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f});
+
+    t1[1] = Tensor2D::from_vector(2, 2, {9.0f, 10.0f, 11.0f, 12.0f});
+    t2[1] = Tensor2D::from_vector(2, 2, {13.0f, 14.0f, 15.0f, 16.0f});
+
+    Tensor3D t3 = t1.mat_mul_eigen_parallel(t2);
+
+    // Expected t3[0] = t1[0] * t2[0] = [ [19 22], [43 50] ]
+    assert(t3[0](0, 0) == 19.0f); // 1*5 + 2*7
+    assert(t3[0](0, 1) == 22.0f); // 1*6 + 2*8
+    assert(t3[0](1, 0) == 43.0f); // 3*5 + 4*7
+    assert(t3[0](1, 1) == 50.0f); // 3*6 + 4*8
+
+    // Expected t3[1] = t1[1] * t2[1] = [ [267 286], [323 346] ]
+    assert(t3[1](0, 0) == 267.0f); // 9*13 + 10*15
+    assert(t3[1](0, 1) == 286.0f); // 9*14 + 10*16
+    assert(t3[1](1, 0) == 323.0f); // 11*13 + 12*15
+    assert(t3[1](1, 1) == 346.0f); // 11*14 + 12*16
+
+    std::cout << "PASSED\n";
+}
+
 
 int main() {
     std::cout << std::endl;
@@ -1233,6 +1262,9 @@ int main() {
 
     test_tensor3d_mat_mul();
     test_tensor3d_mat_mul_eigen();
+    std::cout << std::endl;
+
+    test_tensor3d_mat_mul_eigen_parallel();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;

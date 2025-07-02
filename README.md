@@ -36,7 +36,10 @@ mini-tensor/
 
 ### Run Tests
 ```bash
-g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/test_runner \
+# If you want OpenMP support (recommended for parallel features), use Homebrew GCC:
+# Install with: brew install gcc
+# Then use the versioned g++ (e.g., g++-15) as below:
+g++-15 -fopenmp -std=c++17 -Iinclude -Ithird_party/eigen -o build/test_runner \
 tests/test_runner.cpp src/tensor2d.cpp src/tensor3d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
 ```
 

@@ -40,4 +40,16 @@ public:
         }
         return result;
     }
+
+    Tensor3D mat_mul_eigen_parallel(const Tensor3D& other) {
+        if (this->cols() != other.rows()) {
+            throw std::invalid_argument("Shape mismatch in mat_mul_eigen");
+        }
+        Tensor3D result(this->batch_size(), this->rows(), other.cols());
+        #pragma omp parallel for
+        for (size_t i = 0; i < this->batch_size(); ++i) {
+            result[i] = (*this)[i].mat_mul_eigen(other[i]);
+        }
+        return result;
+    }
 };
