@@ -14,6 +14,8 @@ _Last updated: June 28, 2025_
 - [Shape and Reshaping](#shape-and-reshaping)
 - [Broadcasting](#broadcasting)
 - [Comparison Operations](#comparison-operations)
+- [Error Handling](#error-handling)
+- [IR Trace and Tensor IDs](#ir-trace-and-tensor-ids)
 - [Building and Running](#building-and-running)
 
 ## Constructors
@@ -594,16 +596,60 @@ try {
 }
 ```
 
+## IR Trace and Tensor IDs
+
+### IR Trace
+
+All major operations on `Tensor2D`—such as arithmetic, `relu`, `matmul`, and `reshape`—are automatically recorded in a global IR trace. Each entry logs the operation name, input tensor IDs, and output tensor ID. This trace is useful for debugging and introspection.
+
+#### Printing the IR Trace
+
+Call `IRTrace::print()` after performing tensor operations to display the trace:
+
+```cpp
+#include "tensor2d.hpp"
+#include "relu.hpp"
+#include "ir_trace.hpp"
+
+Tensor2D a = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}); // tensor_186
+Tensor2D b = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f}); // tensor_187
+Tensor2D c = a.mat_mul(b); // tensor_188
+Tensor2D d = c.relu();      // tensor_189
+
+IRTrace::print();
+```
+
+**Output:**
+```text
+Printing IRTrace:
+[0] mat_mul(tensor_186, tensor_187) -> tensor_188
+[1] relu(tensor_188) -> tensor_189
+```
+
+- The IR trace records every major operation performed on `Tensor2D` objects.
+- Each entry shows the operation, input tensor IDs, and output tensor ID.
+- Use the trace to debug or inspect the computation graph of your tensor code.
+
+### Tensor IDs
+
+Every `Tensor2D` is assigned a unique string ID at construction. This ID is used in the IR trace and can be accessed programmatically:
+
+```cpp
+std::string id = tensor.get_id();
+```
+
 ## Building and Running
 
 ### Build and Run Tests
 ```bash
-g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/test_runner \
-tests/test_runner.cpp src/tensor2d.cpp src/tensor3d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
+g++-15 -fopenmp -std=c++17 -Iinclude -Ithird_party/eigen -o build/test_runner \
+  tests/test_runner.cpp src/tensor2d.cpp src/tensor3d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp \
+  && ./build/test_runner
 ```
 
 This command does the following:
-- `g++`: Invokes the C++ compiler.
+- `g++-15`: Invokes the C++15 compiler.
+- `-fopenmp`: Enables OpenMP for parallelization.
 - `-std=c++17`: Uses the C++17 standard.
 - `-Iinclude`: Tells the compiler to look for header files in the `include` directory.
 - `-Ithird_party/eigen`: Tells the compiler to look for Eigen header files.

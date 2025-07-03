@@ -40,7 +40,8 @@ mini-tensor/
 # Install with: brew install gcc
 # Then use the versioned g++ (e.g., g++-15) as below:
 g++-15 -fopenmp -std=c++17 -Iinclude -Ithird_party/eigen -o build/test_runner \
-tests/test_runner.cpp src/tensor2d.cpp src/tensor3d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp && ./build/test_runner
+  tests/test_runner.cpp src/tensor2d.cpp src/tensor3d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp \
+  && ./build/test_runner
 ```
 
 ### Run Neural Network Example
@@ -61,7 +62,7 @@ g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/benchmark benchmark.cpp sr
 - **Neural Network Modules**: Linear layers, ReLU activation, Softmax activation, Sequential containers
 - **Forward Pass**: Run input through neural network models
 - **Performance**: Contiguous memory layout for efficient cache access; matmul benchmarks included
+- **IR Trace**: All Tensor2D operations are tracked in a global IR trace for debugging and introspection
+- **Unique Tensor IDs**: Every Tensor2D instance is assigned a unique ID for traceability
 
 📖 Full API docs and usage examples → [See demo.md](demo.md)
-
-
