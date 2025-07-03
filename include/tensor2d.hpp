@@ -4,22 +4,27 @@
 #include <iostream>
 #include <stdexcept>
 #include <Eigen/Dense>
+#include "id_utils.hpp"
+#include "ir_trace.hpp"
 
 class Tensor2D {
 
 private:
     size_t rows_, cols_;
     std::vector<float> data_;
+    std::string id_;
 
 public:
     Tensor2D(size_t rows, size_t cols, float val=0)
-        : rows_(rows), cols_(cols), data_(rows * cols, val) {}
+        : rows_(rows), cols_(cols), data_(rows * cols, val), id_(TensorID::generate()) {}
 
     float* data() { return data_.data(); }
     const float* data() const { return data_.data(); }
 
     size_t rows() const { return rows_; }
     size_t cols() const { return cols_; }
+    const std::string& get_id() const { return id_; }
+
 
     float& operator()(size_t row, size_t col) {
         if (row >= rows_ || col >= cols_) {
@@ -81,6 +86,7 @@ public:
         }
         rows_ = rows;
         cols_ = cols;
+        IRTrace::record("reshape", {this->get_id()}, this->get_id());
     }
 
     std::pair<size_t, size_t> infer_broadcast_shape(std::pair<size_t, size_t> shape1, std::pair<size_t, size_t> shape2) const {
@@ -124,6 +130,7 @@ public:
                 result(i, j) = a_val + b_val;
             }
         }
+        IRTrace::record("operator+", {this->get_id(), other.get_id()}, result.get_id());
         return result;
     }
 
@@ -331,7 +338,9 @@ public:
     }
 
     Tensor2D relu() const {
-        return unary_op([](float x) { return std::max(x, 0.0f); });
+        Tensor2D result = unary_op([](float x) {return std::max(x, 0.0f); });
+        IRTrace::record("relu", {this->get_id()}, result.get_id());
+        return result;
     }
 
     void relu_in_place() {
@@ -397,6 +406,7 @@ public:
                 result(i, j) = sum;
             }
         }
+        IRTrace::record("mat_mul", {this->get_id(), other.get_id()}, result.get_id());
         return result;
     }
 

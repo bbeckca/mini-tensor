@@ -9,6 +9,7 @@
 #include <cassert>
 #include <iostream>
 #include <numeric>
+#include "ir_trace.hpp"
 
 void test_constructor_with_default_value() {
     std::cout << "Running test: constructor with default value... ";
@@ -1167,6 +1168,22 @@ void test_tensor3d_mat_mul_eigen_parallel() {
     std::cout << "PASSED\n";
 }
 
+void test_ir_trace() {
+    std::cout << "Running test: IRTrace... ";
+    
+    IRTrace::reset();
+
+    Tensor2D a = Tensor2D::from_random(2, 3);
+    Tensor2D b = Tensor2D::from_random(3, 2);
+    Tensor2D c = a.mat_mul(b);
+    Tensor2D d = c.relu();
+
+    std::cout << "Printing IRTrace: " << std::endl;
+    IRTrace::print();
+    assert(IRTrace::size() == 2);
+    std::cout << "PASSED" << std::endl;
+}
+
 
 int main() {
     std::cout << std::endl;
@@ -1297,6 +1314,9 @@ int main() {
     std::cout << std::endl;
 
     test_tensor3d_mat_mul_eigen_parallel();
+    std::cout << std::endl;
+
+    test_ir_trace();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;
