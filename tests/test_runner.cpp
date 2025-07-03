@@ -64,6 +64,23 @@ void test_from_random() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_tensor_device() {
+    std::cout << "Running test: tensor device... ";
+    size_t rows = 2, cols = 3;
+    Tensor2D t1(rows, cols, 0.0f, Device::CPU);
+    assert(t1.get_device() == Device::CPU);
+
+    Tensor2D t2(rows, cols, 0.0f, Device::GPU);
+    assert(t2.get_device() == Device::GPU);
+
+    Tensor2D t3 = Tensor2D::from_vector(rows, cols, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Device::GPU);
+    assert(t3.get_device() == Device::GPU);
+
+    Tensor2D t4 = Tensor2D::from_random(rows, cols, Device::GPU);
+    assert(t4.get_device() == Device::GPU);    
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_shape() {
     std::cout << "Running test: shape()... ";
     Tensor2D t1(4, 5);
@@ -1204,6 +1221,7 @@ int main() {
     test_fill_and_operator_parentheses();
     test_from_vector();
     test_from_random();
+    test_tensor_device();    
     std::cout << std::endl;
 
     test_tensor_equality();

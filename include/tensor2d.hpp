@@ -6,6 +6,7 @@
 #include <Eigen/Dense>
 #include "id_utils.hpp"
 #include "ir_trace.hpp"
+#include "device.hpp"
 
 class Tensor2D {
 
@@ -13,10 +14,11 @@ private:
     size_t rows_, cols_;
     std::vector<float> data_;
     std::string id_;
+    Device device_;
 
 public:
-    Tensor2D(size_t rows, size_t cols, float val=0)
-        : rows_(rows), cols_(cols), data_(rows * cols, val), id_(TensorID::generate()) {}
+    Tensor2D(size_t rows, size_t cols, float val=0, Device device=Device::CPU)
+        : rows_(rows), cols_(cols), data_(rows * cols, val), id_(TensorID::generate()), device_(device) {}
 
     float* data() { return data_.data(); }
     const float* data() const { return data_.data(); }
@@ -24,7 +26,7 @@ public:
     size_t rows() const { return rows_; }
     size_t cols() const { return cols_; }
     const std::string& get_id() const { return id_; }
-
+    Device get_device() const { return device_; }
 
     float& operator()(size_t row, size_t col) {
         if (row >= rows_ || col >= cols_) {
@@ -47,17 +49,17 @@ public:
         std::fill(data_.begin(), data_.end(), value);
     }
 
-    static Tensor2D from_vector(size_t rows, size_t cols, const std::vector<float>& data) {
+    static Tensor2D from_vector(size_t rows, size_t cols, const std::vector<float>& data, Device device=Device::CPU) {
         if (data.size() != rows * cols) {
             throw std::invalid_argument("Data size must match the number of elements");
         }
-        Tensor2D result(rows, cols);
+        Tensor2D result(rows, cols, 0.0f, device);
         std::copy(data.begin(), data.end(), result.data_.begin());
         return result;
     }
 
-    static Tensor2D from_random(size_t rows, size_t cols) {
-        Tensor2D result(rows, cols);
+    static Tensor2D from_random(size_t rows, size_t cols, Device device=Device::CPU) {
+        Tensor2D result(rows, cols, 0.0f, device);
         for (size_t i = 0; i < rows; ++i) {
             for (size_t j = 0; j < cols; ++j) {
                 result(i, j) = std::rand() / (float)RAND_MAX;
