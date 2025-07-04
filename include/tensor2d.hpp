@@ -183,6 +183,7 @@ public:
                 result(i, j) = a_val - b_val;
             }
         }
+        IRTrace::record("operator-", {this->get_id(), other.get_id()}, result.get_id(), result.shape(), device_);
         return result;
     }
 
@@ -233,6 +234,7 @@ public:
                 result(i, j) = a_val * b_val;
             }
         }
+        IRTrace::record("operator*", {this->get_id(), other.get_id()}, result.get_id(), result.shape(), device_);
         return result;
     }
 
@@ -283,6 +285,7 @@ public:
                 result(i, j) = a_val / b_val;
             }
         }
+        IRTrace::record("operator/", {this->get_id(), other.get_id()}, result.get_id(), result.shape(), device_);
         return result;
     }
 

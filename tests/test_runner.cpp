@@ -1185,8 +1185,35 @@ void test_tensor3d_mat_mul_eigen_parallel() {
     std::cout << "PASSED\n";
 }
 
-void test_ir_trace_for_ops() {
-    std::cout << "Running test: IRTrace...\n";
+void test_ir_trace_for_arithmetic_operators() {
+    std::cout << "Running test: IRTrace for arithmetic operators...\n";
+    TensorID::reset();
+    IRTrace::reset();
+    size_t rows = 2, cols = 2;
+
+    Tensor2D a = Tensor2D::from_random(rows, cols);
+    Tensor2D b = Tensor2D::from_random(rows, cols);
+    Tensor2D c = a + b;
+    Tensor2D d = a - b;
+    Tensor2D e = a * b;
+    Tensor2D f = a / b;
+
+    IRTrace::print();
+    assert(IRTrace::size() == 4);
+
+    auto ops = IRTrace::get_ops();
+    assert(ops[0].op_name == "operator+");
+    assert(ops[1].op_name == "operator-");
+    assert(ops[2].op_name == "operator*");
+    assert(ops[3].op_name == "operator/");
+    assert(ops[3].shape == std::make_pair(rows, cols));
+    assert(ops[3].device == Device::CPU);
+
+    std::cout << "PASSED\n";
+}
+
+void test_ir_trace_for_operators() {
+    std::cout << "\nRunning test: IRTrace for operators...\n";
     TensorID::reset();
     IRTrace::reset();
 
@@ -1254,7 +1281,7 @@ void test_ir_trace_for_linear() {
 }
 
 void test_ir_trace_for_sequential() {
-    std::cout << "Running test: IRTrace for Sequential...\n";
+    std::cout << "\nRunning test: IRTrace for Sequential...\n";
 
     TensorID::reset();
     IRTrace::reset();
@@ -1416,7 +1443,8 @@ int main() {
     test_tensor3d_mat_mul_eigen_parallel();
     std::cout << std::endl;
 
-    test_ir_trace_for_ops();
+    test_ir_trace_for_arithmetic_operators();
+    test_ir_trace_for_operators();
     test_ir_trace_for_linear();
     test_ir_trace_for_sequential();
     std::cout << std::endl;
