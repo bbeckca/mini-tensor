@@ -1,4 +1,5 @@
 #include "softmax.hpp"
+#include "ir_trace.hpp"
 #include <cmath>
 
 Tensor2D Softmax::forward(const Tensor2D& input) {
@@ -24,5 +25,6 @@ Tensor2D Softmax::forward(const Tensor2D& input) {
         
     }
 
+    IRTrace::record("softmax", {input.get_id()}, output.get_id(), output.shape(), output.get_device());
     return output;
 }

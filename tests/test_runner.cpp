@@ -1254,11 +1254,9 @@ void test_ir_trace_for_linear() {
     Tensor2D output = linear.forward(input);
 
     IRTrace::print();
-    std::cout << "IRTrace size: " << IRTrace::size() << std::endl;
-    assert(IRTrace::size() == 3);
-    
     auto ops = IRTrace::get_ops();
-    
+
+    assert(IRTrace::size() == 3);
     assert(ops[0].op_name == "mat_mul");
     assert(ops[0].inputs.size() == 2);
     assert(ops[0].output == "tensor_5");
@@ -1280,6 +1278,30 @@ void test_ir_trace_for_linear() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_ir_trace_for_softmax() {
+    std::cout << "\nRunning test: IRTrace for Softmax...\n";
+
+    TensorID::reset();
+    IRTrace::reset();
+
+    Softmax softmax;
+    Tensor2D input = Tensor2D::from_random(2, 3);
+    Tensor2D output = softmax.forward(input);
+
+    IRTrace::print();
+    auto ops = IRTrace::get_ops();
+
+    assert(IRTrace::size() == 1);
+    assert(ops[0].op_name == "softmax");
+    assert(ops[0].inputs[0] == input.get_id());
+    assert(ops[0].inputs.size() == 1);
+    assert(ops[0].output == output.get_id());
+    assert(ops[0].shape == output.shape());
+    assert(ops[0].device == output.get_device());
+
+    std::cout << "PASSED\n";
+}
+
 void test_ir_trace_for_sequential() {
     std::cout << "\nRunning test: IRTrace for Sequential...\n";
 
@@ -1295,7 +1317,6 @@ void test_ir_trace_for_sequential() {
     Tensor2D output = model.forward(input);
 
     IRTrace::print();
-
     const auto& ops = IRTrace::get_ops();
 
     assert(IRTrace::size() == 8);
@@ -1446,6 +1467,7 @@ int main() {
     test_ir_trace_for_arithmetic_operators();
     test_ir_trace_for_operators();
     test_ir_trace_for_linear();
+    test_ir_trace_for_softmax();
     test_ir_trace_for_sequential();
     std::cout << std::endl;
 
