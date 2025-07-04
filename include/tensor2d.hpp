@@ -88,7 +88,7 @@ public:
         }
         rows_ = rows;
         cols_ = cols;
-        IRTrace::record("reshape", {this->get_id()}, this->get_id());
+        IRTrace::record("reshape", {this->get_id()}, this->get_id(), {rows, cols}, device_);
     }
 
     std::pair<size_t, size_t> infer_broadcast_shape(std::pair<size_t, size_t> shape1, std::pair<size_t, size_t> shape2) const {
@@ -132,7 +132,7 @@ public:
                 result(i, j) = a_val + b_val;
             }
         }
-        IRTrace::record("operator+", {this->get_id(), other.get_id()}, result.get_id());
+        IRTrace::record("operator+", {this->get_id(), other.get_id()}, result.get_id(), result.shape(), device_);
         return result;
     }
 
@@ -341,7 +341,7 @@ public:
 
     Tensor2D relu() const {
         Tensor2D result = unary_op([](float x) {return std::max(x, 0.0f); });
-        IRTrace::record("relu", {this->get_id()}, result.get_id());
+        IRTrace::record("relu", {this->get_id()}, result.get_id(), result.shape(), device_);
         return result;
     }
 
@@ -408,7 +408,7 @@ public:
                 result(i, j) = sum;
             }
         }
-        IRTrace::record("mat_mul", {this->get_id(), other.get_id()}, result.get_id());
+        IRTrace::record("mat_mul", {this->get_id(), other.get_id()}, result.get_id(), result.shape(), device_);
         return result;
     }
 

@@ -22,18 +22,26 @@ _Last updated: June 28, 2025_
 
 ### Basic Constructor
 ```cpp
-// Create a 3x4 tensor filled with zeros
+// Create a 3x4 tensor filled with zeros on the default device (CPU)
 Tensor2D tensor(3, 4);
 
-// Create a 2x2 tensor filled with a specific value
+// Create a 2x2 tensor filled with a specific value on the default device (CPU)
 Tensor2D tensor(2, 2, 42.0f);
+
+// Create a 2x2 tensor on a specific device (CPU or GPU)
+Tensor2D tensor(2, 2, 0.0f, Device::GPU); // On GPU
 ```
+
+- Each `Tensor2D` contains device information, indicating whether it resides on the CPU or GPU. By default, tensors are created on the CPU unless specified otherwise.
 
 ### From Vector
 ```cpp
-// Create tensor from existing data
+// Create tensor from existing data (on CPU)
 std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f};
 Tensor2D tensor = Tensor2D::from_vector(2, 2, data);
+
+// Create tensor from vector on a specific device
+Tensor2D tensor = Tensor2D::from_vector(2, 2, data, Device::GPU);
 ```
 
 ### From Random
@@ -63,8 +71,15 @@ tensor.fill(42.0f);
 
 ### Printing
 ```cpp
-// Print tensor contents
+// Print tensor contents (includes device information)
 tensor.print();
+```
+
+### Device Access
+```cpp
+// Get the device of a tensor
+Device device = tensor.get_device();
+std::cout << "Tensor is on device: " << to_string(device) << std::endl;
 ```
 
 ## Tensor2DView and Slicing
@@ -600,7 +615,7 @@ try {
 
 ### IR Trace
 
-All major operations on `Tensor2D`—such as arithmetic, `relu`, `matmul`, and `reshape`—are automatically recorded in a global IR trace. Each entry logs the operation name, input tensor IDs, and output tensor ID. This trace is useful for debugging and introspection.
+All major operations on `Tensor2D`—such as arithmetic, `relu`, `matmul`, and `reshape`—are automatically recorded in a global IR trace. Each entry logs the operation name, input tensor IDs, output tensor ID, shape, and device. This trace is useful for debugging and introspection.
 
 #### Printing the IR Trace
 
@@ -622,12 +637,20 @@ IRTrace::print();
 **Output:**
 ```text
 Printing IRTrace:
-[0] mat_mul(tensor_186, tensor_187) -> tensor_188
-[1] relu(tensor_188) -> tensor_189
+[0] Operation: mat_mul
+    Inputs : tensor_186, tensor_187
+    Output : tensor_188
+    Shape  : 2 x 2
+    Device : CPU
+[1] Operation: relu
+    Inputs : tensor_188
+    Output : tensor_189
+    Shape  : 2 x 2
+    Device : CPU
 ```
 
 - The IR trace records every major operation performed on `Tensor2D` objects.
-- Each entry shows the operation, input tensor IDs, and output tensor ID.
+- Each entry shows the operation, input tensor IDs, output tensor ID, shape, and device in a readable, indented format.
 - Use the trace to debug or inspect the computation graph of your tensor code.
 
 ### Tensor IDs

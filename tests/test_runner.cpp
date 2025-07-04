@@ -1186,8 +1186,8 @@ void test_tensor3d_mat_mul_eigen_parallel() {
 }
 
 void test_ir_trace() {
-    std::cout << "Running test: IRTrace... ";
-    
+    std::cout << "Running test: IRTrace...\n";
+    TensorID::reset();
     IRTrace::reset();
 
     Tensor2D a = Tensor2D::from_random(2, 3);
@@ -1195,9 +1195,23 @@ void test_ir_trace() {
     Tensor2D c = a.mat_mul(b);
     Tensor2D d = c.relu();
 
-    std::cout << "Printing IRTrace: " << std::endl;
     IRTrace::print();
     assert(IRTrace::size() == 2);
+
+    auto ops = IRTrace::get_ops();
+    assert(ops[0].op_name == "mat_mul");
+    assert(ops[0].inputs[0] == a.get_id());
+    assert(ops[0].inputs[1] == b.get_id());
+    assert(ops[0].output == c.get_id());
+    assert(ops[0].shape == std::make_pair(2UL, 2UL));
+    assert(ops[0].device == Device::CPU);
+
+    assert(ops[1].op_name == "relu");
+    assert(ops[1].inputs[0] == c.get_id());
+    assert(ops[1].output == d.get_id());
+    assert(ops[1].shape == std::make_pair(2UL, 2UL));
+    assert(ops[1].device == Device::CPU);
+
     std::cout << "PASSED" << std::endl;
 }
 
