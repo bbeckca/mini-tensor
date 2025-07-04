@@ -1253,6 +1253,37 @@ void test_ir_trace_for_linear() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_ir_trace_for_sequential() {
+    std::cout << "Running test: IRTrace for Sequential...\n";
+
+    TensorID::reset();
+    IRTrace::reset();
+
+    Sequential model;
+    model.add(std::make_unique<Linear>(3, 4));
+    model.add(std::make_unique<ReLU>());
+    model.add(std::make_unique<Linear>(4, 2));
+
+    Tensor2D input = Tensor2D::from_random(1, 3);
+    Tensor2D output = model.forward(input);
+
+    IRTrace::print();
+
+    const auto& ops = IRTrace::get_ops();
+
+    assert(IRTrace::size() == 8);
+    assert(ops[2].op_name == "linear");
+    assert(ops[3].op_name == "relu");
+    assert(ops[6].op_name == "linear");
+    assert(ops[7].op_name == "sequential");
+    assert(ops[7].output == output.get_id());
+    assert(ops[7].shape == output.shape());
+    assert(ops[7].device == output.get_device());
+
+    std::cout << "PASSED\n";
+}
+
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -1387,6 +1418,7 @@ int main() {
 
     test_ir_trace_for_ops();
     test_ir_trace_for_linear();
+    test_ir_trace_for_sequential();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;
