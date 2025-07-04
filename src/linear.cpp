@@ -1,4 +1,5 @@
 #include "linear.hpp"
+#include "ir_trace.hpp"
 #include <stdexcept>
 
 Linear::Linear(size_t in_dim, size_t out_dim)
@@ -19,5 +20,7 @@ void Linear::set_bias(const Tensor2D& new_bias) {
 }
 
 Tensor2D Linear::forward(const Tensor2D& input) {
-    return input.mat_mul(weights) + bias;
+    Tensor2D result = input.mat_mul(weights) + bias;
+    IRTrace::record("linear", {input.get_id(), weights.get_id(), bias.get_id()}, result.get_id(), result.shape(), result.get_device());
+    return result;
 }

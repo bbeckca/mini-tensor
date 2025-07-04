@@ -1185,7 +1185,7 @@ void test_tensor3d_mat_mul_eigen_parallel() {
     std::cout << "PASSED\n";
 }
 
-void test_ir_trace() {
+void test_ir_trace_for_ops() {
     std::cout << "Running test: IRTrace...\n";
     TensorID::reset();
     IRTrace::reset();
@@ -1215,6 +1215,43 @@ void test_ir_trace() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_ir_trace_for_linear() {
+    std::cout << "\nRunning test: IRTrace for Linear...\n";
+    TensorID::reset();
+    IRTrace::reset();
+
+    Linear linear(3, 2);
+    linear.set_weights(Tensor2D::from_random(3, 2));
+    linear.set_bias(Tensor2D::from_random(1, 2));
+    Tensor2D input = Tensor2D::from_random(1, 3);
+    Tensor2D output = linear.forward(input);
+
+    IRTrace::print();
+    std::cout << "IRTrace size: " << IRTrace::size() << std::endl;
+    assert(IRTrace::size() == 3);
+    
+    auto ops = IRTrace::get_ops();
+    
+    assert(ops[0].op_name == "mat_mul");
+    assert(ops[0].inputs.size() == 2);
+    assert(ops[0].output == "tensor_5");
+    assert(ops[0].shape == std::make_pair(1UL, 2UL));
+    assert(ops[0].device == Device::CPU);
+    
+    assert(ops[1].op_name == "operator+");
+    assert(ops[1].inputs.size() == 2);
+    assert(ops[1].output == output.get_id());
+    assert(ops[1].shape == std::make_pair(1UL, 2UL));
+    assert(ops[1].device == Device::CPU);
+    
+    assert(ops[2].op_name == "linear");
+    assert(ops[2].inputs.size() == 3);
+    assert(ops[2].output == output.get_id());
+    assert(ops[2].shape == std::make_pair(1UL, 2UL));
+    assert(ops[2].device == Device::CPU);
+    
+    std::cout << "PASSED" << std::endl;
+}
 
 int main() {
     std::cout << std::endl;
@@ -1348,7 +1385,8 @@ int main() {
     test_tensor3d_mat_mul_eigen_parallel();
     std::cout << std::endl;
 
-    test_ir_trace();
+    test_ir_trace_for_ops();
+    test_ir_trace_for_linear();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;
