@@ -649,6 +649,182 @@ Printing IRTrace:
     Device : CPU
 ```
 
+#### Arithmetic Operations IR Trace
+
+The IR trace captures all arithmetic operations (`+`, `-`, `*`, `/`):
+
+```cpp
+#include "tensor2d.hpp"
+#include "ir_trace.hpp"
+
+TensorID::reset();
+IRTrace::reset();
+
+Tensor2D a = Tensor2D::from_random(2, 2);
+Tensor2D b = Tensor2D::from_random(2, 2);
+Tensor2D c = a + b;  // Addition
+Tensor2D d = a - b;  // Subtraction
+Tensor2D e = a * b;  // Multiplication
+Tensor2D f = a / b;  // Division
+
+IRTrace::print();
+```
+
+**Output:**
+```text
+Printing IRTrace:
+[0] Operation: operator+
+    Inputs : tensor_0, tensor_1
+    Output : tensor_2
+    Shape  : 2 x 2
+    Device : CPU
+[1] Operation: operator-
+    Inputs : tensor_0, tensor_1
+    Output : tensor_3
+    Shape  : 2 x 2
+    Device : CPU
+[2] Operation: operator*
+    Inputs : tensor_0, tensor_1
+    Output : tensor_4
+    Shape  : 2 x 2
+    Device : CPU
+[3] Operation: operator/
+    Inputs : tensor_0, tensor_1
+    Output : tensor_5
+    Shape  : 2 x 2
+    Device : CPU
+```
+
+#### Linear Layer IR Trace
+
+The Linear layer's forward pass generates multiple operations:
+
+```cpp
+#include "linear.hpp"
+#include "ir_trace.hpp"
+
+TensorID::reset();
+IRTrace::reset();
+
+Linear linear(3, 2);
+linear.set_weights(Tensor2D::from_random(3, 2));
+linear.set_bias(Tensor2D::from_random(1, 2));
+Tensor2D input = Tensor2D::from_random(1, 3);
+Tensor2D output = linear.forward(input);
+
+IRTrace::print();
+```
+
+**Output:**
+```text
+Printing IRTrace:
+[0] Operation: mat_mul
+    Inputs : tensor_4, tensor_2
+    Output : tensor_5
+    Shape  : 1 x 2
+    Device : CPU
+[1] Operation: operator+
+    Inputs : tensor_5, tensor_3
+    Output : tensor_6
+    Shape  : 1 x 2
+    Device : CPU
+[2] Operation: linear
+    Inputs : tensor_4, tensor_2, tensor_3
+    Output : tensor_6
+    Shape  : 1 x 2
+    Device : CPU
+```
+
+The Linear layer generates three trace entries:
+1. **mat_mul**: Matrix multiplication of input with weights
+2. **operator+**: Addition of bias to the result
+3. **linear**: Composite operation recording all inputs and output
+
+#### Sequential Model IR Trace
+
+A complete Sequential model demonstrates the full computation graph:
+
+```cpp
+#include "sequential.hpp"
+#include "linear.hpp"
+#include "relu.hpp"
+#include "ir_trace.hpp"
+#include <iostream>
+
+int main() {
+    TensorID::reset();
+    IRTrace::reset();
+
+    // Build a Sequential model: Linear -> ReLU -> Linear
+    Sequential model;
+    model.add(std::make_unique<Linear>(3, 4));
+    model.add(std::make_unique<ReLU>());
+    model.add(std::make_unique<Linear>(4, 2));
+
+    // Run forward pass
+    Tensor2D input = Tensor2D::from_random(1, 3);
+    Tensor2D output = model.forward(input);
+
+    // Print the complete IR trace
+    std::cout << "Complete computation graph:" << std::endl;
+    IRTrace::print();
+    
+    return 0;
+}
+```
+
+**Output:**
+```text
+Complete computation graph:
+Printing IRTrace:
+[0] Operation: mat_mul
+    Inputs : tensor_4, tensor_2
+    Output : tensor_5
+    Shape  : 1 x 4
+    Device : CPU
+[1] Operation: operator+
+    Inputs : tensor_5, tensor_3
+    Output : tensor_6
+    Shape  : 1 x 4
+    Device : CPU
+[2] Operation: linear
+    Inputs : tensor_4, tensor_2, tensor_3
+    Output : tensor_6
+    Shape  : 1 x 4
+    Device : CPU
+[3] Operation: relu
+    Inputs : tensor_6
+    Output : tensor_7
+    Shape  : 1 x 4
+    Device : CPU
+[4] Operation: mat_mul
+    Inputs : tensor_7, tensor_8
+    Output : tensor_9
+    Shape  : 1 x 2
+    Device : CPU
+[5] Operation: operator+
+    Inputs : tensor_9, tensor_10
+    Output : tensor_11
+    Shape  : 1 x 2
+    Device : CPU
+[6] Operation: linear
+    Inputs : tensor_7, tensor_8, tensor_10
+    Output : tensor_11
+    Shape  : 1 x 2
+    Device : CPU
+[7] Operation: sequential
+    Inputs : tensor_4, tensor_2, tensor_3, tensor_8, tensor_10
+    Output : tensor_11
+    Shape  : 1 x 2
+    Device : CPU
+```
+
+This trace shows the complete computation graph:
+- **Operations 0-2**: First Linear layer (mat_mul + bias + composite)
+- **Operation 3**: ReLU activation
+- **Operations 4-6**: Second Linear layer (mat_mul + bias + composite)
+- **Operation 7**: Sequential composite operation
+
 - The IR trace records every major operation performed on `Tensor2D` objects.
 - Each entry shows the operation, input tensor IDs, output tensor ID, shape, and device in a readable, indented format.
 - Use the trace to debug or inspect the computation graph of your tensor code.

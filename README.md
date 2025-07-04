@@ -65,4 +65,56 @@ g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/benchmark benchmark.cpp sr
 - **IR Trace**: All Tensor2D operations are tracked in a global IR trace for debugging and introspection
 - **Unique Tensor IDs**: Every Tensor2D instance is assigned a unique ID for traceability
 
+## IR Trace
+
+The library automatically tracks all major operations in a global IR trace, including:
+- **Arithmetic operators**: `+`, `-`, `*`, `/`
+- **Matrix operations**: `mat_mul`
+- **Element-wise functions**: `relu`
+- **Neural network modules**: `Linear`, `Softmax`, `Sequential`
+
+### Example IR Trace Output
+
+```cpp
+#include "tensor2d.hpp"
+#include "linear.hpp"
+#include "ir_trace.hpp"
+
+TensorID::reset();
+IRTrace::reset();
+
+Tensor2D a = Tensor2D::from_random(2, 2);
+Tensor2D b = Tensor2D::from_random(2, 2);
+Tensor2D c = a + b;  // Addition
+Linear linear(2, 2);
+Tensor2D output = linear.forward(c);
+
+IRTrace::print();
+```
+
+**Output:**
+```text
+Printing IRTrace:
+[0] Operation: operator+
+    Inputs : tensor_0, tensor_1
+    Output : tensor_2
+    Shape  : 2 x 2
+    Device : CPU
+[1] Operation: mat_mul
+    Inputs : tensor_2, tensor_3
+    Output : tensor_4
+    Shape  : 2 x 2
+    Device : CPU
+[2] Operation: operator+
+    Inputs : tensor_4, tensor_5
+    Output : tensor_6
+    Shape  : 2 x 2
+    Device : CPU
+[3] Operation: linear
+    Inputs : tensor_2, tensor_3, tensor_5
+    Output : tensor_6
+    Shape  : 2 x 2
+    Device : CPU
+```
+
 📖 Full API docs and usage examples → [See demo.md](demo.md)
