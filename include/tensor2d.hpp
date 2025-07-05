@@ -249,9 +249,6 @@ public:
     void copy_from(const Tensor2D& other) {
         if (this == &other) return;
         if (rows_ != other.rows_ || cols_ != other.cols_ || device_ != other.device_) {
-             std::cerr << "copy_from shape/device mismatch: this=("
-                  << rows_ << "," << cols_ << "," << (int)device_ << ") other=("
-                  << other.rows_ << "," << other.cols_ << "," << (int)other.device_ << ")\n";
             throw std::invalid_argument("copy_from shape or device mismatch");
         }
 
