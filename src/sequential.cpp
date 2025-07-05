@@ -1,3 +1,4 @@
+#include <memory>
 #include "sequential.hpp"
 #include "ir_trace.hpp"
 

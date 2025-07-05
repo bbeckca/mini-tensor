@@ -8,8 +8,10 @@
 #include "tensor3d.hpp"
 #include <cassert>
 #include <iostream>
+#include <memory>
 #include <numeric>
 #include "ir_trace.hpp"
+#include "matmul_cuda.hpp"
 
 void test_constructor_with_default_value() {
     std::cout << "Running test: constructor with default value... ";
@@ -941,6 +943,73 @@ void test_mat_mul_eigen_with_incompatible_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
+#ifdef USE_CUDA
+void test_mat_mul_cuda_with_same_shapes() {
+    std::cout << "Running test: mat_mul_cuda() with same shapes... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}, Device::GPU);
+    Tensor2D t2 = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f}, Device::GPU);
+    Tensor2D t3 = mat_mul_cuda(t1, t2);
+    assert(t3.get_device() == Device::GPU);
+    assert(t3(0, 0) == 19.0f);
+    assert(t3(0, 1) == 22.0f);
+    assert(t3(1, 0) == 43.0f);
+    assert(t3(1, 1) == 50.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mat_mul_cuda_with_compatible_shapes() {
+    std::cout << "Running test: mat_mul_cuda() with compatible shapes... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Device::GPU);
+    Tensor2D t2 = Tensor2D::from_vector(3, 1, {1.0f, 0.0f, -1.0f}, Device::GPU);
+    Tensor2D t3 = mat_mul_cuda(t1, t2);
+    assert(t3.get_device() == Device::GPU);
+    assert(t3(0, 0) == -2.0f);
+    assert(t3(1, 0) == -2.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mat_mul_cuda_with_identity_matrix() {
+    std::cout << "Running test: mat_mul_cuda() with identity matrix... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}, Device::GPU);
+    Tensor2D t2 = Tensor2D::from_vector(2, 2, {1.0f, 0.0f, 0.0f, 1.0f}, Device::GPU);
+    Tensor2D t3 = mat_mul_cuda(t1, t2);
+    assert(t3.get_device() == Device::GPU);
+    assert(t3(0, 0) == 1.0f);
+    assert(t3(0, 1) == 2.0f);
+    assert(t3(1, 0) == 3.0f);
+    assert(t3(1, 1) == 4.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mat_mul_cuda_with_incompatible_shapes() {
+    std::cout << "Running test: mat_mul_cuda() with incompatible shapes... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}, Device::GPU);
+    Tensor2D t2 = Tensor2D::from_vector(3, 2, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f}, Device::GPU);
+    bool exception_thrown = false;
+    try {
+        Tensor2D t3 = mat_mul_cuda(t1, t2);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mat_mul_cuda_with_incompatible_device() {
+    std::cout << "Running test: mat_mul_cuda() with incompatible device... ";
+    Tensor2D t1 = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}, Device::CPU);
+    Tensor2D t2 = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f}, Device::GPU);
+    bool exception_thrown = false;
+    try {
+        Tensor2D t3 = mat_mul_cuda(t1, t2);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+#endif
+
 void test_linear_forward() {
     std::cout << "Running test: Linear forward()... ";
     Linear linear(2, 2);
@@ -1442,6 +1511,15 @@ int main() {
     test_mat_mul_eigen_with_incompatible_shapes();
     std::cout << std::endl;
 
+    #ifdef USE_CUDA
+    test_mat_mul_cuda_with_same_shapes();
+    test_mat_mul_cuda_with_compatible_shapes();
+    test_mat_mul_cuda_with_identity_matrix();
+    test_mat_mul_cuda_with_incompatible_device();
+    test_mat_mul_cuda_with_incompatible_shapes();
+    std::cout << std::endl;
+    #endif
+
     test_linear_forward();
     test_relu_forward();
     test_sequential_forward();
@@ -1459,8 +1537,6 @@ int main() {
 
     test_tensor3d_mat_mul();
     test_tensor3d_mat_mul_eigen();
-    std::cout << std::endl;
-
     test_tensor3d_mat_mul_eigen_parallel();
     std::cout << std::endl;
 
