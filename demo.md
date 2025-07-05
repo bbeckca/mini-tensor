@@ -839,7 +839,18 @@ std::string id = tensor.get_id();
 
 ## Building and Running
 
-### Build and Run Tests
+### Build Instructions
+
+The library supports both CPU-only and CUDA-enabled builds. CUDA builds require an NVIDIA GPU (e.g., T4 on GCP) and CUDA toolkit.
+
+#### Required Flags for CUDA Builds:
+- `-DUSE_CUDA`: Enables CUDA support and GPU benchmarks
+- `-I/usr/local/cuda/include`: Includes CUDA headers
+- `-L/usr/local/cuda/lib64 -lcudart -lcublas`: Links CUDA runtime and cuBLAS libraries
+
+### Running Tests
+
+#### CPU-only
 ```bash
 g++-15 -fopenmp -std=c++17 -Iinclude -Ithird_party/eigen -o build/test_runner \
   tests/test_runner.cpp src/tensor2d.cpp src/tensor3d.cpp src/tensor2d_view.cpp src/linear.cpp src/relu.cpp src/softmax.cpp src/sequential.cpp \
@@ -856,7 +867,29 @@ This command does the following:
 - `tests/test_runner.cpp src/tensor2d.cpp src/tensor3d.cpp src/tensor2d_view.cpp`: The source files to compile.
 - `&& ./build/test_runner`: Runs the compiled program if the build was successful.
 
-### Build and Run Benchmark
+#### GPU-enabled (CUDA)
+*Requires an NVIDIA GPU (e.g., T4 on GCP) and CUDA toolkit*
+
+```bash
+# Compile CUDA matmul kernel
+nvcc --expt-relaxed-constexpr -std=c++17 \
+    -Iinclude -Ithird_party/eigen \
+    -c src/matmul_cuda.cu -o build/matmul_cuda.o
+
+# Build test runner with CUDA support
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -I/usr/local/cuda/include -DUSE_CUDA \
+    tests/test_runner.cpp \
+    src/tensor2d.cpp src/tensor3d.cpp src/linear.cpp \
+    src/relu.cpp src/sequential.cpp src/softmax.cpp src/tensor2d_view.cpp \
+    build/matmul_cuda.o \
+    -o build/test_runner \
+    -L/usr/local/cuda/lib64 -lcudart -lcublas
+
+# Run tests
+./build/test_runner
+```
+
+### Running Benchmarks
 
 #### CPU-only
 ```bash
@@ -876,12 +909,17 @@ This command does the following:
 *Requires an NVIDIA GPU (e.g., T4 on GCP) and CUDA toolkit*
 
 ```bash
-nvcc --expt-relaxed-constexpr -std=c++17 -Iinclude -Ithird_party/eigen -c src/matmul_cuda.cu -o build/matmul_cuda.o
+# Compile CUDA matmul kernel
+nvcc --expt-relaxed-constexpr -std=c++17 -Iinclude -Ithird_party/eigen \
+    -c src/matmul_cuda.cu -o build/matmul_cuda.o
 
-g++ -std=c++17 -Iinclude -Ithird_party/eigen -DUSE_CUDA \
-benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp build/matmul_cuda.o \
--o build/benchmark -L/usr/local/cuda/lib64 -lcudart -lcublas
+# Build benchmark binary
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -I/usr/local/cuda/include -DUSE_CUDA \
+    benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp build/matmul_cuda.o \
+    -o build/benchmark \
+    -L/usr/local/cuda/lib64 -lcudart -lcublas
 
+# Run benchmarks
 ./build/benchmark
 ```
 
@@ -938,6 +976,8 @@ int main() {
 }
 ```
 
+
+
 ## Performance Notes
 
 - The library uses contiguous memory layout for efficient cache access
@@ -946,30 +986,152 @@ int main() {
 - Broadcasting operations create new tensors rather than views
 - In-place operations are available for better performance when possible
 
-## GPU Acceleration
+## CUDA Support
 
-The library supports GPU acceleration through CUDA for matrix multiplication operations. Tensor2D can be created on either CPU or GPU devices.
+The library supports GPU acceleration through CUDA for matrix multiplication operations with comprehensive device memory management.
 
-### GPU Device Support
+### Architecture Update
+
+**Tensor2D** now uses `float*` instead of `std::vector<float>` to support device memory:
+
+- **Device Memory Support**: Raw pointers enable direct CUDA memory allocation and management
+- **Runtime Safety**: All CPU-side operations validate device type to prevent invalid GPU memory access
+- **Explicit Transfer**: `to(Device::CPU)` and `to(Device::GPU)` enable safe device transfer
+- **Device-Aware Copy**: `copy_from`, assignment operator, and copy constructor handle device memory correctly
+
+### Runtime Safety
+
+Runtime safety checks (e.g., in `operator()`, `operator[]`) only apply to CPU-side access. GPU-side kernel code accesses memory directly via raw `float*` without validation logic.
+
+### Memory Semantics
+
+```cpp
+// Device transfer
+Tensor2D cpu_tensor = Tensor2D::from_random(1024, 1024, Device::CPU);
+Tensor2D gpu_tensor = cpu_tensor.to(Device::GPU);
+
+// Memory copy with validation
+Tensor2D source = Tensor2D::from_random(2, 3, Device::CPU);
+Tensor2D dest = Tensor2D(2, 3, 0.0f, Device::CPU);
+dest.copy_from(source);  // Validates shape and device compatibility
+
+// Deep copy semantics
+Tensor2D original = Tensor2D::from_random(512, 512, Device::GPU);
+Tensor2D copy(original);  // Proper device allocation and copy
+```
+
+### GPU Operations
 
 ```cpp
 #include "tensor2d.hpp"
 #include "matmul_cuda.hpp"
 
-// Create tensors on GPU
+// GPU-accelerated matrix multiplication
 Tensor2D A = Tensor2D::from_random(1024, 1024, Device::GPU);
 Tensor2D B = Tensor2D::from_random(1024, 1024, Device::GPU);
-
-// GPU-accelerated matrix multiplication
-Tensor2D C = mat_mul_cuda(A, B);
-
-// Check device of result
-std::cout << "Result tensor device: " << to_string(C.get_device()) << std::endl;
+Tensor2D C = mat_mul_cuda(A, B);  // Runs on GPU
 ```
 
-### IR Trace for GPU Operations
+### Performance Benchmarks
 
-GPU operations are also tracked in the IR trace:
+On an NVIDIA T4 instance (GCP):
+
+#### Matrix Multiplication Performance
+
+| Shape             | CPU Time (ms) | GPU Time (ms) | Speedup |
+|------------------|---------------|----------------|---------|
+| 512 × 512         | 2287.25       | 1864.76        | 1.23×    |
+| 1024 × 1024       | 23455.9       | 18.49          | 1268.24× |
+
+#### Device Transfer Performance
+
+| Shape             | CPU → GPU (us) | GPU → CPU (us) | Roundtrip (us) |
+|------------------|----------------|----------------|----------------|
+| 512 × 512         | 463            | 1374           | 1837           |
+| 1024 × 1024       | 1225           | 15726          | 16951          |
+
+**Note**: GPU → CPU transfer is significantly slower due to PCIe bandwidth limits.
+
+### Requirements
+
+- NVIDIA GPU with CUDA support
+- CUDA toolkit installed
+- Compile with `-DUSE_CUDA` flag and link against CUDA libraries
+
+## Limitations
+
+- Only supports 2D, 3D tensors
+- Limited to float data type
+- No automatic differentiation
+- Broadcasting creates new tensors (no view semantics)
+
+## Advanced Details
+
+<details>
+<summary>CUDA Memory Management Implementation</summary>
+
+### Memory Allocation Strategy
+
+The library uses different memory allocation strategies for CPU and GPU:
+
+```cpp
+// CPU allocation (standard new/delete)
+if (device == Device::CPU) {
+    data_ = new float[size];
+    std::fill(data_, data_ + size, val);
+}
+
+// GPU allocation (CUDA malloc/free)
+if (device == Device::GPU) {
+    cudaError_t err = cudaMalloc(&data_, size * sizeof(float));
+    if (err != cudaSuccess) {
+        throw std::runtime_error("CUDA malloc failed");
+    }
+}
+```
+
+### Device Transfer Implementation
+
+The `to(Device)` method implements safe device transfer:
+
+```cpp
+Tensor2D to(Device target) const {
+    if (device_ == target) return *this;
+    
+    Tensor2D result(rows_, cols_, 0.0f, target);
+    size_t bytes = rows_ * cols_ * sizeof(float);
+    
+    if (target == Device::GPU) {
+        cudaMemcpy(result.data_, data_, bytes, cudaMemcpyHostToDevice);
+    } else {
+        cudaMemcpy(result.data_, data_, bytes, cudaMemcpyDeviceToHost);
+    }
+    
+    return result;
+}
+```
+
+### Runtime Safety Checks
+
+All CPU-side memory access operations include device validation:
+
+```cpp
+float& operator()(size_t row, size_t col) {
+    if (device_ == Device::GPU) {
+        throw std::runtime_error("Cannot access GPU tensor data directly from CPU code");
+    }
+    // ... rest of implementation
+}
+```
+
+**Note**: GPU-side kernel code accesses memory directly via raw `float*` without validation logic.
+
+</details>
+
+<details>
+<summary>IR Trace for GPU Operations</summary>
+
+GPU operations are tracked in the IR trace just like CPU operations:
 
 ```cpp
 #include "tensor2d.hpp"
@@ -996,34 +1158,4 @@ Printing IRTrace:
     Device : GPU
 ```
 
-### GPU Benchmark Example
-
-```cpp
-#include "tensor2d.hpp"
-#include "matmul_cuda.hpp"
-
-Tensor2D A = Tensor2D::from_random(1024, 1024, Device::GPU);
-Tensor2D B = Tensor2D::from_random(1024, 1024, Device::GPU);
-Tensor2D C = mat_mul_cuda(A, B);
-```
-
-**Output:**
-```text
-Benchmarking matmul cpu vs. gpu with shape: 1024 x 1024
-CPU time: 23455.9 ms
-GPU time: 18.49 ms
-Speedup: 1268.24x
-```
-
-### Requirements
-
-- NVIDIA GPU with CUDA support
-- CUDA toolkit installed
-- Compile with `-DUSE_CUDA` flag and link against CUDA libraries
-
-## Limitations
-
-- Only supports 2D, 3D tensors
-- Limited to float data type
-- No automatic differentiation
-- Broadcasting creates new tensors (no view semantics) 
+</details> 

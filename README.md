@@ -55,11 +55,13 @@ g++ -std=c++17 -Iinclude -Ithird_party/eigen \
 *Requires an NVIDIA GPU (e.g., T4 on GCP) and CUDA toolkit*
 
 ```bash
+# Compile CUDA matmul kernel
 nvcc --expt-relaxed-constexpr -std=c++17 \
     -Iinclude -Ithird_party/eigen \
     -c src/matmul_cuda.cu -o build/matmul_cuda.o
 
-g++ -std=c++17 -Iinclude -Ithird_party/eigen -DUSE_CUDA \
+# Build test runner with CUDA support
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -I/usr/local/cuda/include -DUSE_CUDA \
     tests/test_runner.cpp \
     src/tensor2d.cpp src/tensor3d.cpp src/linear.cpp \
     src/relu.cpp src/sequential.cpp src/softmax.cpp src/tensor2d_view.cpp \
@@ -67,6 +69,7 @@ g++ -std=c++17 -Iinclude -Ithird_party/eigen -DUSE_CUDA \
     -o build/test_runner \
     -L/usr/local/cuda/lib64 -lcudart -lcublas
 
+# Run tests
 ./build/test_runner
 ```
 
@@ -87,12 +90,17 @@ g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/benchmark benchmark.cpp sr
 *Requires an NVIDIA GPU (e.g., T4 on GCP) and CUDA toolkit*
 
 ```bash
-nvcc --expt-relaxed-constexpr -std=c++17 -Iinclude -Ithird_party/eigen -c src/matmul_cuda.cu -o build/matmul_cuda.o
+# Compile CUDA matmul kernel
+nvcc --expt-relaxed-constexpr -std=c++17 -Iinclude -Ithird_party/eigen \
+    -c src/matmul_cuda.cu -o build/matmul_cuda.o
 
-g++ -std=c++17 -Iinclude -Ithird_party/eigen -DUSE_CUDA \
-benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp build/matmul_cuda.o \
--o build/benchmark -L/usr/local/cuda/lib64 -lcudart -lcublas
+# Build benchmark binary
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -I/usr/local/cuda/include -DUSE_CUDA \
+    benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp build/matmul_cuda.o \
+    -o build/benchmark \
+    -L/usr/local/cuda/lib64 -lcudart -lcublas
 
+# Run benchmarks
 ./build/benchmark
 ```
 
@@ -105,39 +113,63 @@ benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp build/matmul_cuda.o \
 - **Performance**: Contiguous memory layout for efficient cache access; matmul benchmarks included
 - **IR Trace**: All Tensor2D operations are tracked in a global IR trace for debugging and introspection
 - **Unique Tensor IDs**: Every Tensor2D instance is assigned a unique ID for traceability
-- **GPU Acceleration**: CUDA-based matrix multiplication
+- **CUDA Support**: GPU acceleration with device memory management
 
-## GPU Acceleration
+## CUDA Support
 
-Tensor2D supports both `Device::CPU` and `Device::GPU` device types. The `mat_mul_cuda()` function dispatches to a custom CUDA kernel for GPU-based matrix multiplication, providing significant speedup for large matrices.
+Tensor2D supports both `Device::CPU` and `Device::GPU` device types with CUDA acceleration for matrix multiplication operations.
+
+### Architecture Update
+
+**Tensor2D** now uses `float*` instead of `std::vector<float>` to support device memory:
+
+- **Device Memory Support**: Raw pointers enable direct CUDA memory allocation and management
+- **Runtime Safety**: All CPU-side operations validate device type to prevent invalid GPU memory access
+- **Explicit Transfer**: `to(Device::CPU)` and `to(Device::GPU)` enable safe device transfer
+- **Device-Aware Copy**: `copy_from`, assignment operator, and copy constructor handle device memory correctly
+
+### Runtime Safety
+
+Runtime safety checks (e.g., in `operator()`, `operator[]`) only apply to CPU-side access. GPU-side kernel code accesses memory directly via raw `float*` without validation logic.
+
+### Memory Semantics
 
 ```cpp
-// GPU-accelerated matrix multiplication
-Tensor2D A = Tensor2D::from_random(1024, 1024, Device::GPU);
-Tensor2D B = Tensor2D::from_random(1024, 1024, Device::GPU);
-Tensor2D C = mat_mul_cuda(A, B);  // Runs on GPU
+// Device transfer
+Tensor2D cpu_tensor = Tensor2D::from_random(1024, 1024, Device::CPU);
+Tensor2D gpu_tensor = cpu_tensor.to(Device::GPU);
+
+// Memory copy with validation
+Tensor2D source = Tensor2D::from_random(2, 3, Device::CPU);
+Tensor2D dest = Tensor2D(2, 3, 0.0f, Device::CPU);
+dest.copy_from(source);  // Validates shape and device compatibility
+
+// Deep copy semantics
+Tensor2D original = Tensor2D::from_random(512, 512, Device::GPU);
+Tensor2D copy(original);  // Proper device allocation and copy
 ```
 
-### GPU Benchmarks
+### Performance Benchmarks
 
-On an NVIDIA T4 instance (GCP), the following results were observed:
+On an NVIDIA T4 instance (GCP):
 
-#### Matrix Multiplication (Tensor2D)
+#### Matrix Multiplication Performance
 
 | Shape             | CPU Time (ms) | GPU Time (ms) | Speedup |
 |------------------|---------------|----------------|---------|
 | 512 × 512         | 2287.25       | 1864.76        | 1.23×    |
 | 1024 × 1024       | 23455.9       | 18.49          | 1268.24× |
 
-#### Batched Matmul (Tensor3D, Eigen)
+#### Device Transfer Performance
 
-| Shape                   | CPU Time (us) | Parallel (us) | Speedup |
-|------------------------|---------------|----------------|---------|
-| (2, 1024, 1024)         | 16348587      | 13934478       | 1.17×    |
-| (4, 512, 512)           | 3460654       | 3462328        | ~1.00×   |
-| (8, 256, 512)           | 869296        | 866700         | ~1.00×   |
+| Shape             | CPU → GPU (us) | GPU → CPU (us) | Roundtrip (us) |
+|------------------|----------------|----------------|----------------|
+| 512 × 512         | 463            | 1374           | 1837           |
+| 1024 × 1024       | 1225           | 15726          | 16951          |
 
-> Note: Parallel performance shows marginal gains due to Eigen thread scaling limits on small batch sizes.
+**Note**: GPU → CPU transfer is significantly slower due to PCIe bandwidth limits.
+
+
 
 ## IR Trace
 
@@ -191,4 +223,12 @@ Printing IRTrace:
     Device : CPU
 ```
 
-📖 Full API docs and usage examples → [See demo.md](demo.md)
+📖 **Full API documentation and detailed usage examples** → [See demo.md](demo.md)
+
+The demo.md file contains comprehensive documentation including:
+- Complete API reference with code examples
+- Detailed CUDA implementation examples  
+- Advanced memory management details
+- IR trace examples and debugging
+- Neural network module usage
+- Performance optimization guidelines
