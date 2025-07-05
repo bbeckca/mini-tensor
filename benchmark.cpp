@@ -1,5 +1,6 @@
 #include <iostream>
 #include <chrono>
+#include <cassert>
 #include <Eigen/Core>
 #include "../include/tensor2d.hpp"
 #include "../include/tensor3d.hpp"
@@ -97,8 +98,8 @@ void benchmark_matmul_cuda_vs_cpu(int N) {
     // Manually copy to GPU tensors
     Tensor2D A_gpu(N, N, 0.0f, Device::GPU);
     Tensor2D B_gpu(N, N, 0.0f, Device::GPU);
-    std::memcpy(A_gpu.data(), A_cpu.data(), N * N * sizeof(float));
-    std::memcpy(B_gpu.data(), B_cpu.data(), N * N * sizeof(float));
+    cudaMemcpy(A_gpu.data(), A_cpu.data(), N * N * sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(B_gpu.data(), B_cpu.data(), N * N * sizeof(float), cudaMemcpyHostToDevice);
 
     // GPU matmul
     auto gpu_start = std::chrono::high_resolution_clock::now();
@@ -111,6 +112,41 @@ void benchmark_matmul_cuda_vs_cpu(int N) {
     std::cout << "CPU time: " << cpu_ms << " ms\n";
     std::cout << "GPU time: " << gpu_ms << " ms\n";
     std::cout << "Speedup:  " << speedup << "x\n\n";
+}
+
+#endif
+
+#ifdef USE_CUDA
+void benchmark_device_transfer(size_t N) {
+    std::cout << "Benchmarking device transfer with shape: " << N << " x " << N << std::endl;
+
+    // Create original CPU tensor with random data
+    Tensor2D original = Tensor2D::from_random(N, N, Device::CPU);
+    
+    // Time CPU → GPU transfer
+    auto cpu_to_gpu_start = std::chrono::high_resolution_clock::now();
+    Tensor2D gpu_tensor = original.to(Device::GPU);
+    auto cpu_to_gpu_end = std::chrono::high_resolution_clock::now();
+    auto cpu_to_gpu_us = std::chrono::duration_cast<std::chrono::microseconds>(cpu_to_gpu_end - cpu_to_gpu_start).count();
+    
+    // Time GPU → CPU transfer
+    auto gpu_to_cpu_start = std::chrono::high_resolution_clock::now();
+    Tensor2D cpu_tensor = gpu_tensor.to(Device::CPU);
+    auto gpu_to_cpu_end = std::chrono::high_resolution_clock::now();
+    auto gpu_to_cpu_us = std::chrono::duration_cast<std::chrono::microseconds>(gpu_to_cpu_end - gpu_to_cpu_start).count();
+    
+    // Verify shape and values match original
+    assert(cpu_tensor.shape() == original.shape());
+    for (size_t i = 0; i < N; ++i) {
+        for (size_t j = 0; j < N; ++j) {
+            assert(cpu_tensor(i, j) == original(i, j));
+        }
+    }
+    
+    // Result
+    std::cout << "CPU → GPU transfer: " << cpu_to_gpu_us << " us\n";
+    std::cout << "GPU → CPU transfer: " << gpu_to_cpu_us << " us\n";
+    std::cout << "Total roundtrip:    " << (cpu_to_gpu_us + gpu_to_cpu_us) << " us\n\n";
 }
 #endif
 
@@ -141,6 +177,8 @@ int main() {
     #ifdef USE_CUDA
     benchmark_matmul_cuda_vs_cpu(512);
     benchmark_matmul_cuda_vs_cpu(1024);
+    benchmark_device_transfer(512);
+    benchmark_device_transfer(1024);
     std::cout << std::endl;
     #endif
 }
