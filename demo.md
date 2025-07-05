@@ -1,5 +1,5 @@
 # Tensor2D and Tensor3D Demo and Feature Documentation
-_Last updated: June 28, 2025_
+_Last updated: July 4, 2025_
 
 ## Table of Contents
 - [Constructors](#constructors)
@@ -857,6 +857,8 @@ This command does the following:
 - `&& ./build/test_runner`: Runs the compiled program if the build was successful.
 
 ### Build and Run Benchmark
+
+#### CPU-only
 ```bash
 g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/benchmark benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp && ./build/benchmark
 ```
@@ -869,6 +871,25 @@ This command does the following:
 - `-o build/benchmark`: Specifies the output executable name and location.
 - `benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp`: The source files to compile.
 - `&& ./build/benchmark`: Runs the compiled program if the build was successful.
+
+#### GPU-enabled (CUDA)
+*Requires an NVIDIA GPU (e.g., T4 on GCP) and CUDA toolkit*
+
+```bash
+nvcc --expt-relaxed-constexpr -std=c++17 -Iinclude -Ithird_party/eigen -c src/matmul_cuda.cu -o build/matmul_cuda.o
+
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -DUSE_CUDA \
+benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp build/matmul_cuda.o \
+-o build/benchmark -L/usr/local/cuda/lib64 -lcudart -lcublas
+
+./build/benchmark
+```
+
+This command does the following:
+- `nvcc`: NVIDIA CUDA compiler to compile the CUDA kernel
+- `g++`: C++ compiler with `-DUSE_CUDA` flag to enable GPU benchmarks
+- `-L/usr/local/cuda/lib64 -lcudart -lcublas`: Links against CUDA runtime and cuBLAS libraries
+- The resulting executable will run both CPU and GPU benchmarks when available
 
 ## Complete Example
 
@@ -973,6 +994,25 @@ Printing IRTrace:
     Output : tensor_2
     Shape  : 2 x 2
     Device : GPU
+```
+
+### GPU Benchmark Example
+
+```cpp
+#include "tensor2d.hpp"
+#include "matmul_cuda.hpp"
+
+Tensor2D A = Tensor2D::from_random(1024, 1024, Device::GPU);
+Tensor2D B = Tensor2D::from_random(1024, 1024, Device::GPU);
+Tensor2D C = mat_mul_cuda(A, B);
+```
+
+**Output:**
+```text
+Benchmarking matmul cpu vs. gpu with shape: 1024 x 1024
+CPU time: 23455.9 ms
+GPU time: 18.49 ms
+Speedup: 1268.24x
 ```
 
 ### Requirements

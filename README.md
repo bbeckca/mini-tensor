@@ -77,8 +77,23 @@ examples/forward_pass.cpp src/tensor2d.cpp src/tensor3d.cpp src/tensor2d_view.cp
 ```
 
 ### Run Benchmarks
+
+#### CPU-only
 ```bash
 g++ -std=c++17 -Iinclude -Ithird_party/eigen -o build/benchmark benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp && ./build/benchmark
+```
+
+#### GPU-enabled (CUDA)
+*Requires an NVIDIA GPU (e.g., T4 on GCP) and CUDA toolkit*
+
+```bash
+nvcc --expt-relaxed-constexpr -std=c++17 -Iinclude -Ithird_party/eigen -c src/matmul_cuda.cu -o build/matmul_cuda.o
+
+g++ -std=c++17 -Iinclude -Ithird_party/eigen -DUSE_CUDA \
+benchmark.cpp src/tensor2d.cpp src/tensor3d.cpp build/matmul_cuda.o \
+-o build/benchmark -L/usr/local/cuda/lib64 -lcudart -lcublas
+
+./build/benchmark
 ```
 
 ## Features
@@ -102,6 +117,27 @@ Tensor2D A = Tensor2D::from_random(1024, 1024, Device::GPU);
 Tensor2D B = Tensor2D::from_random(1024, 1024, Device::GPU);
 Tensor2D C = mat_mul_cuda(A, B);  // Runs on GPU
 ```
+
+### GPU Benchmarks
+
+On an NVIDIA T4 instance (GCP), the following results were observed:
+
+#### Matrix Multiplication (Tensor2D)
+
+| Shape             | CPU Time (ms) | GPU Time (ms) | Speedup |
+|------------------|---------------|----------------|---------|
+| 512 × 512         | 2287.25       | 1864.76        | 1.23×    |
+| 1024 × 1024       | 23455.9       | 18.49          | 1268.24× |
+
+#### Batched Matmul (Tensor3D, Eigen)
+
+| Shape                   | CPU Time (us) | Parallel (us) | Speedup |
+|------------------------|---------------|----------------|---------|
+| (2, 1024, 1024)         | 16348587      | 13934478       | 1.17×    |
+| (4, 512, 512)           | 3460654       | 3462328        | ~1.00×   |
+| (8, 256, 512)           | 869296        | 866700         | ~1.00×   |
+
+> Note: Parallel performance shows marginal gains due to Eigen thread scaling limits on small batch sizes.
 
 ## IR Trace
 
