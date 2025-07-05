@@ -925,10 +925,65 @@ int main() {
 - Broadcasting operations create new tensors rather than views
 - In-place operations are available for better performance when possible
 
+## GPU Acceleration
+
+The library supports GPU acceleration through CUDA for matrix multiplication operations. Tensor2D can be created on either CPU or GPU devices.
+
+### GPU Device Support
+
+```cpp
+#include "tensor2d.hpp"
+#include "matmul_cuda.hpp"
+
+// Create tensors on GPU
+Tensor2D A = Tensor2D::from_random(1024, 1024, Device::GPU);
+Tensor2D B = Tensor2D::from_random(1024, 1024, Device::GPU);
+
+// GPU-accelerated matrix multiplication
+Tensor2D C = mat_mul_cuda(A, B);
+
+// Check device of result
+std::cout << "Result tensor device: " << to_string(C.get_device()) << std::endl;
+```
+
+### IR Trace for GPU Operations
+
+GPU operations are also tracked in the IR trace:
+
+```cpp
+#include "tensor2d.hpp"
+#include "matmul_cuda.hpp"
+#include "ir_trace.hpp"
+
+TensorID::reset();
+IRTrace::reset();
+
+Tensor2D A = Tensor2D::from_random(2, 2, Device::GPU);
+Tensor2D B = Tensor2D::from_random(2, 2, Device::GPU);
+Tensor2D C = mat_mul_cuda(A, B);
+
+IRTrace::print();
+```
+
+**Output:**
+```text
+Printing IRTrace:
+[0] Operation: mat_mul_cuda
+    Inputs : tensor_0, tensor_1
+    Output : tensor_2
+    Shape  : 2 x 2
+    Device : GPU
+```
+
+### Requirements
+
+- NVIDIA GPU with CUDA support
+- CUDA toolkit installed
+- Compile with `-DUSE_CUDA` flag and link against CUDA libraries
+
 ## Limitations
 
 - Only supports 2D, 3D tensors
 - Limited to float data type
-- No GPU acceleration
 - No automatic differentiation
 - Broadcasting creates new tensors (no view semantics) 
