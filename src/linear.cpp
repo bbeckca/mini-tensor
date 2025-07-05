@@ -9,14 +9,23 @@ void Linear::set_weights(const Tensor2D& new_weights) {
     if (new_weights.shape() != weights.shape()) {
         throw std::invalid_argument("Shape mismatch in set_weights");
     }
-    weights = new_weights;
+    weights.copy_from(new_weights);
 }
+
 
 void Linear::set_bias(const Tensor2D& new_bias) {
     if (new_bias.shape() != bias.shape()) {
         throw std::invalid_argument("Shape mismatch in set_bias");
     }
-    bias = new_bias;
+    bias.copy_from(new_bias);
+}
+
+Tensor2D Linear::get_weights() const {
+    return weights;
+}
+
+Tensor2D Linear::get_bias() const {
+    return bias;
 }
 
 Tensor2D Linear::forward(const Tensor2D& input) {

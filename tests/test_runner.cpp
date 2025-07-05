@@ -72,6 +72,7 @@ void test_tensor_device() {
     Tensor2D t1(rows, cols, 0.0f, Device::CPU);
     assert(t1.get_device() == Device::CPU);
 
+    #ifdef USE_CUDA
     Tensor2D t2(rows, cols, 0.0f, Device::GPU);
     assert(t2.get_device() == Device::GPU);
 
@@ -81,6 +82,7 @@ void test_tensor_device() {
     Tensor2D t4 = Tensor2D::from_random(rows, cols, Device::GPU);
     assert(t4.get_device() == Device::GPU);    
     std::cout << "PASSED" << std::endl;
+    #endif
 }
 
 void test_shape() {
@@ -950,10 +952,11 @@ void test_mat_mul_cuda_with_same_shapes() {
     Tensor2D t2 = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f}, Device::GPU);
     Tensor2D t3 = mat_mul_cuda(t1, t2);
     assert(t3.get_device() == Device::GPU);
-    assert(t3(0, 0) == 19.0f);
-    assert(t3(0, 1) == 22.0f);
-    assert(t3(1, 0) == 43.0f);
-    assert(t3(1, 1) == 50.0f);
+    Tensor2D t3_cpu = t3.to(Device::CPU);
+    assert(t3_cpu(0, 0) == 19.0f);
+    assert(t3_cpu(0, 1) == 22.0f);
+    assert(t3_cpu(1, 0) == 43.0f);
+    assert(t3_cpu(1, 1) == 50.0f);
     std::cout << "PASSED" << std::endl;
 }
 
@@ -963,8 +966,9 @@ void test_mat_mul_cuda_with_compatible_shapes() {
     Tensor2D t2 = Tensor2D::from_vector(3, 1, {1.0f, 0.0f, -1.0f}, Device::GPU);
     Tensor2D t3 = mat_mul_cuda(t1, t2);
     assert(t3.get_device() == Device::GPU);
-    assert(t3(0, 0) == -2.0f);
-    assert(t3(1, 0) == -2.0f);
+    Tensor2D t3_cpu = t3.to(Device::CPU);
+    assert(t3_cpu(0, 0) == -2.0f);
+    assert(t3_cpu(1, 0) == -2.0f);
     std::cout << "PASSED" << std::endl;
 }
 
@@ -974,10 +978,11 @@ void test_mat_mul_cuda_with_identity_matrix() {
     Tensor2D t2 = Tensor2D::from_vector(2, 2, {1.0f, 0.0f, 0.0f, 1.0f}, Device::GPU);
     Tensor2D t3 = mat_mul_cuda(t1, t2);
     assert(t3.get_device() == Device::GPU);
-    assert(t3(0, 0) == 1.0f);
-    assert(t3(0, 1) == 2.0f);
-    assert(t3(1, 0) == 3.0f);
-    assert(t3(1, 1) == 4.0f);
+    Tensor2D t3_cpu = t3.to(Device::CPU);
+    assert(t3_cpu(0, 0) == 1.0f);
+    assert(t3_cpu(0, 1) == 2.0f);
+    assert(t3_cpu(1, 0) == 3.0f);
+    assert(t3_cpu(1, 1) == 4.0f);
     std::cout << "PASSED" << std::endl;
 }
 
@@ -1400,6 +1405,171 @@ void test_ir_trace_for_sequential() {
     std::cout << "PASSED\n";
 }
 
+#ifdef USE_CUDA
+void test_to_device_roundtrip() {
+    std::cout << "Running test: to(Device) roundtrip transfer... ";
+    Tensor2D original = Tensor2D::from_vector(2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    
+    Tensor2D gpu_tensor = original.to(Device::GPU);
+    assert(gpu_tensor.get_device() == Device::GPU);
+    assert(gpu_tensor.shape() == original.shape());
+    
+    Tensor2D cpu_tensor = gpu_tensor.to(Device::CPU);
+    assert(cpu_tensor.get_device() == Device::CPU);
+    assert(cpu_tensor.shape() == original.shape());
+    
+    for (size_t i = 0; i < original.rows(); ++i) {
+        for (size_t j = 0; j < original.cols(); ++j) {
+            assert(cpu_tensor(i, j) == original(i, j));
+        }
+    }
+    
+    std::cout << "PASSED" << std::endl;
+}
+#endif
+
+void test_copy_from_same_shape() {
+    std::cout << "Running test: copy_from() with same shape... ";
+    Tensor2D source = Tensor2D::from_vector(2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    Tensor2D dest = Tensor2D::from_vector(2, 3, {10.0f, 20.0f, 30.0f, 40.0f, 50.0f, 60.0f});
+    
+    dest.copy_from(source);
+    
+    for (size_t i = 0; i < source.rows(); ++i) {
+        for (size_t j = 0; j < source.cols(); ++j) {
+            assert(dest(i, j) == source(i, j));
+        }
+    }
+    
+    for (size_t i = 0; i < source.rows(); ++i) {
+        for (size_t j = 0; j < source.cols(); ++j) {
+            assert(source(i, j) == (i * source.cols() + j + 1.0f));
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_copy_from_different_shape_throws() {
+    std::cout << "Running test: copy_from() with different shape throws... ";
+    Tensor2D source(2, 3, 1.0f);
+    Tensor2D dest(3, 2, 2.0f);
+    
+    bool exception_thrown = false;
+    try {
+        dest.copy_from(source);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
+#ifdef USE_CUDA
+void test_copy_from_different_device_throws() {
+    std::cout << "Running test: copy_from() with different device throws... ";
+    Tensor2D source(2, 3, 1.0f, Device::CPU);
+    Tensor2D dest(2, 3, 2.0f, Device::GPU);
+    
+    bool exception_thrown = false;
+    try {
+        dest.copy_from(source);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+#endif
+
+void test_copy_from_same_tensor() {
+    std::cout << "Running test: copy_from() same tensor... ";
+    Tensor2D tensor = Tensor2D::from_vector(2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    
+    tensor.copy_from(tensor);
+    
+    for (size_t i = 0; i < tensor.rows(); ++i) {
+        for (size_t j = 0; j < tensor.cols(); ++j) {
+            assert(tensor(i, j) == (i * tensor.cols() + j + 1.0f));
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_copy_constructor_deep_copy() {
+    std::cout << "Running test: copy constructor deep copy... ";
+    Tensor2D original = Tensor2D::from_vector(2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    std::string original_id = original.get_id();
+    
+    Tensor2D copy(original);
+    
+    assert(copy.shape() == original.shape());
+    assert(copy.get_device() == original.get_device());
+    assert(copy.get_id() != original_id);
+    
+    for (size_t i = 0; i < original.rows(); ++i) {
+        for (size_t j = 0; j < original.cols(); ++j) {
+            assert(copy(i, j) == original(i, j));
+        }
+    }
+    
+    original(0, 0) = 999.0f;
+    assert(copy(0, 0) != 999.0f);
+    assert(copy(0, 0) == 1.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_assignment_operator_deep_copy() {
+    std::cout << "Running test: assignment operator deep copy... ";
+    Tensor2D original = Tensor2D::from_vector(2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    std::string original_id = original.get_id();
+    
+    Tensor2D dest = Tensor2D::from_vector(1, 2, {10.0f, 20.0f});
+    dest = original;
+    
+    assert(dest.shape() == original.shape());
+    assert(dest.get_device() == original.get_device());
+    assert(dest.get_id() != original_id);
+    
+    for (size_t i = 0; i < original.rows(); ++i) {
+        for (size_t j = 0; j < original.cols(); ++j) {
+            assert(dest(i, j) == original(i, j));
+        }
+    }
+    
+    original(0, 0) = 999.0f;
+    assert(dest(0, 0) != 999.0f);
+    assert(dest(0, 0) == 1.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_self_assignment() {
+    std::cout << "Running test: self assignment... ";
+    Tensor2D tensor = Tensor2D::from_vector(2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f});
+    std::string original_id = tensor.get_id();
+    
+    tensor = tensor;
+    
+    assert(tensor.shape() == std::make_pair(2ul, 3ul));
+    assert(tensor.get_id() == original_id);
+    
+    for (size_t i = 0; i < tensor.rows(); ++i) {
+        for (size_t j = 0; j < tensor.cols(); ++j) {
+            assert(tensor(i, j) == (i * tensor.cols() + j + 1.0f));
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_memory_management_destruction() {
+    std::cout << "Running test: memory management on destruction... ";
+    Tensor2D cpu_tensor(10, 10, 1.0f, Device::CPU);
+    
+    #ifdef USE_CUDA
+    Tensor2D gpu_tensor(10, 10, 1.0f, Device::GPU);
+    #endif
+    std::cout << "PASSED" << std::endl;
+}
+
 
 int main() {
     std::cout << std::endl;
@@ -1545,6 +1715,22 @@ int main() {
     test_ir_trace_for_linear();
     test_ir_trace_for_softmax();
     test_ir_trace_for_sequential();
+    std::cout << std::endl;
+
+    
+    test_copy_from_same_shape();
+    test_copy_from_different_shape_throws();
+    #ifdef USE_CUDA
+    test_to_device_roundtrip();
+    test_copy_from_different_device_throws();
+    #endif
+    std::cout << std::endl;
+    
+    test_copy_constructor_deep_copy();
+    test_assignment_operator_deep_copy();
+    test_self_assignment();
+    test_copy_from_same_tensor();
+    test_memory_management_destruction();
     std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;

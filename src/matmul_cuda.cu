@@ -2,6 +2,17 @@
 #include "matmul_cuda.hpp"
 #include "ir_trace.hpp"
 #include <cassert>
+#include <iostream>
+
+// Helper function to check CUDA errors
+#define CUDA_CHECK(call) do { \
+    cudaError_t err = call; \
+    if (err != cudaSuccess) { \
+        std::cerr << "CUDA error at " << __FILE__ << ":" << __LINE__ << " - " \
+                  << cudaGetErrorString(err) << std::endl; \
+        throw std::runtime_error("CUDA error: " + std::string(cudaGetErrorString(err))); \
+    } \
+} while(0)
 
 __global__ void matmul_kernel(const float* A, const float* B, float* C, int M, int N, int K) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
@@ -17,6 +28,9 @@ __global__ void matmul_kernel(const float* A, const float* B, float* C, int M, i
 }
 
 Tensor2D mat_mul_cuda(const Tensor2D& A, const Tensor2D& B) {
+    // Ensure CUDA is initialized
+    CUDA_CHECK(cudaFree(0));
+    
     int M = A.rows();
     int K = A.cols();
     int N = B.cols();
@@ -34,26 +48,30 @@ Tensor2D mat_mul_cuda(const Tensor2D& A, const Tensor2D& B) {
 
     // Allocate device memory
     float *d_A, *d_B, *d_C;
-    cudaMalloc(&d_A, M * K * sizeof(float));
-    cudaMalloc(&d_B, K * N * sizeof(float));
-    cudaMalloc(&d_C, M * N * sizeof(float));
+    CUDA_CHECK(cudaMalloc(&d_A, M * K * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_B, K * N * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_C, M * N * sizeof(float)));
 
-    // Copy input tensors to GPU (regardless of their device flag, we need the data on GPU for computation)
-    cudaMemcpy(d_A, A.data(), M * K * sizeof(float), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_B, B.data(), K * N * sizeof(float), cudaMemcpyHostToDevice);
+    // Copy input tensors to GPU - both A and B are already on GPU, so we copy device-to-device
+    CUDA_CHECK(cudaMemcpy(d_A, A.data(), M * K * sizeof(float), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_B, B.data(), K * N * sizeof(float), cudaMemcpyDeviceToDevice));
 
     // Launch kernel
     dim3 threads(16, 16);
     dim3 blocks((N + 15) / 16, (M + 15) / 16);
     matmul_kernel<<<blocks, threads>>>(d_A, d_B, d_C, M, N, K);
+    
+    // Check for kernel launch errors
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
 
-    // Copy result back to host (C tensor's data is on CPU, but tensor is marked as GPU)
-    cudaMemcpy(C.data(), d_C, M * N * sizeof(float), cudaMemcpyDeviceToHost);
+    // Copy result back to the result tensor (which is also on GPU)
+    CUDA_CHECK(cudaMemcpy(C.data(), d_C, M * N * sizeof(float), cudaMemcpyDeviceToDevice));
 
     // Clean up device memory
-    cudaFree(d_A);
-    cudaFree(d_B);
-    cudaFree(d_C);
+    CUDA_CHECK(cudaFree(d_A));
+    CUDA_CHECK(cudaFree(d_B));
+    CUDA_CHECK(cudaFree(d_C));
 
     // Record the operation in IR trace
     IRTrace::record("mat_mul_cuda", {A.get_id(), B.get_id()}, C.get_id(), C.shape(), C.get_device());

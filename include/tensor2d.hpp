@@ -1,5 +1,9 @@
 #pragma once
 #include <cstdlib>
+#include <cstring>
+#include <functional>
+#include <algorithm>
+#include <cmath>
 #include <vector>
 #include <iostream>
 #include <stdexcept>
@@ -8,20 +12,109 @@
 #include "ir_trace.hpp"
 #include "device.hpp"
 
+#ifdef USE_CUDA
+#include <cuda_runtime.h>
+#endif
+
 class Tensor2D {
 
 private:
     size_t rows_, cols_;
-    std::vector<float> data_;
+    float* data_;
     std::string id_;
     Device device_;
 
 public:
-    Tensor2D(size_t rows, size_t cols, float val=0, Device device=Device::CPU)
-        : rows_(rows), cols_(cols), data_(rows * cols, val), id_(TensorID::generate()), device_(device) {}
+    Tensor2D(size_t rows, size_t cols, float val = 0.0f, Device device = Device::CPU)
+        : rows_(rows), cols_(cols), device_(device), id_(TensorID::generate()) {
+        size_t size = rows * cols;
+        if (device == Device::CPU) {
+            data_ = new float[size];
+            std::fill(data_, data_ + size, val);
+        } else {
+            #ifdef USE_CUDA
+            cudaError_t err = cudaMalloc(&data_, size * sizeof(float));
+            if (err != cudaSuccess) {
+                throw std::runtime_error("CUDA malloc failed: " + std::string(cudaGetErrorString(err)));
+            }
+            if (val != 0.0f) {
+                float* tmp = new float[size];
+                std::fill(tmp, tmp + size, val);
+                err = cudaMemcpy(data_, tmp, size * sizeof(float), cudaMemcpyHostToDevice);
+                delete[] tmp;
+                if (err != cudaSuccess) {
+                    cudaFree(data_);
+                    throw std::runtime_error("CUDA memcpy failed: " + std::string(cudaGetErrorString(err)));
+                }
+            }
+            #else
+            throw std::runtime_error("CUDA support not enabled — recompile with -DUSE_CUDA");
+            #endif
+        }
+    }
 
-    float* data() { return data_.data(); }
-    const float* data() const { return data_.data(); }
+    Tensor2D(const Tensor2D& other)
+        : rows_(other.rows_), cols_(other.cols_), device_(other.device_), id_(TensorID::generate()), data_(nullptr) {
+        size_t size = rows_ * cols_;
+        if (device_ == Device::CPU) {
+            data_ = new float[size];
+            std::copy(other.data_, other.data_ + size, data_);
+        } else {
+            #ifdef USE_CUDA
+            cudaError_t err = cudaMalloc(&data_, size * sizeof(float));
+            if (err != cudaSuccess) {
+                throw std::runtime_error("CUDA malloc failed in copy constructor: " + std::string(cudaGetErrorString(err)));
+            }
+            err = cudaMemcpy(data_, other.data_, size * sizeof(float), cudaMemcpyDeviceToDevice);
+            if (err != cudaSuccess) {
+                cudaFree(data_);
+                throw std::runtime_error("CUDA memcpy failed in copy constructor: " + std::string(cudaGetErrorString(err)));
+            }
+            #endif
+        }
+    }
+
+    Tensor2D& operator=(const Tensor2D& other) {
+        if (this != &other) {
+            if (data_) {
+                if (device_ == Device::CPU) {
+                    delete[] data_;
+                            } else {
+                #ifdef USE_CUDA
+                cudaError_t err = cudaFree(data_);
+                if (err != cudaSuccess) {
+                    std::cerr << "Warning: CUDA free failed in assignment: " << cudaGetErrorString(err) << std::endl;
+                }
+                #endif
+            }
+        }
+        rows_ = other.rows_;
+        cols_ = other.cols_;
+        device_ = other.device_;
+        id_ = TensorID::generate();
+        size_t size = rows_ * cols_;
+        if (device_ == Device::CPU) {
+            data_ = new float[size];
+            std::copy(other.data_, other.data_ + size, data_);
+        } else {
+            #ifdef USE_CUDA
+            cudaError_t err = cudaMalloc(&data_, size * sizeof(float));
+            if (err != cudaSuccess) {
+                throw std::runtime_error("CUDA malloc failed in assignment: " + std::string(cudaGetErrorString(err)));
+            }
+            err = cudaMemcpy(data_, other.data_, size * sizeof(float), cudaMemcpyDeviceToDevice);
+            if (err != cudaSuccess) {
+                cudaFree(data_);
+                throw std::runtime_error("CUDA memcpy failed in assignment: " + std::string(cudaGetErrorString(err)));
+            }
+            #endif
+        }
+        }
+        return *this;
+    }
+
+    float* data() { return data_; }
+    const float* data() const { return data_; }
 
     size_t rows() const { return rows_; }
     size_t cols() const { return cols_; }
@@ -32,6 +125,9 @@ public:
         if (row >= rows_ || col >= cols_) {
             throw std::out_of_range("Index out of bounds");
         }
+        if (device_ == Device::GPU) {
+            throw std::runtime_error("Cannot access GPU tensor data directly from CPU code. Use to(Device::CPU) first.");
+        }
         return data_[row * cols_ + col];
     }
 
@@ -39,33 +135,139 @@ public:
         if (row >= rows_ || col >= cols_) {
             throw std::out_of_range("Index out of bounds");
         }
+        if (device_ == Device::GPU) {
+            throw std::runtime_error("Cannot access GPU tensor data directly from CPU code. Use to(Device::CPU) first.");
+        }
         return data_[row * cols_ + col];
     }
 
-    float& operator[](size_t index) { return data_[index]; }
-    const float& operator[](size_t index) const { return data_[index]; }
-
-    void fill(float value) {
-        std::fill(data_.begin(), data_.end(), value);
+    float& operator[](size_t index) { 
+        if (index >= rows_ * cols_) {
+            throw std::out_of_range("Index out of bounds in operator[]");
+        }
+        if (device_ == Device::GPU) {
+            throw std::runtime_error("Cannot access GPU tensor data directly from CPU code. Use to(Device::CPU) first.");
+        }
+        return data_[index]; 
+    }
+    const float& operator[](size_t index) const { 
+        if (index >= rows_ * cols_) {
+            throw std::out_of_range("Index out of bounds in operator[]");
+        }
+        if (device_ == Device::GPU) {
+            throw std::runtime_error("Cannot access GPU tensor data directly from CPU code. Use to(Device::CPU) first.");
+        }
+        return data_[index]; 
     }
 
-    static Tensor2D from_vector(size_t rows, size_t cols, const std::vector<float>& data, Device device=Device::CPU) {
+
+    #ifdef USE_CUDA
+    Tensor2D to(Device target) const {
+        if (device_ == target) return *this;
+
+        Tensor2D result(rows_, cols_, 0.0f, target);
+        size_t bytes = rows_ * cols_ * sizeof(float);
+        cudaError_t err;
+        if (target == Device::GPU) {
+            err = cudaMemcpy(result.data_, data_, bytes, cudaMemcpyHostToDevice);
+        } else {
+            err = cudaMemcpy(result.data_, data_, bytes, cudaMemcpyDeviceToHost);
+        }
+        if (err != cudaSuccess) {
+            throw std::runtime_error("CUDA memcpy failed in to(): " + std::string(cudaGetErrorString(err)));
+        }
+        return result;
+    }
+    #endif
+
+    void fill(float val) {
+        size_t size = rows_ * cols_;
+        if (device_ == Device::CPU) {
+            std::fill(data_, data_ + size, val);
+        }
+        else {
+            #ifdef USE_CUDA
+            float* tmp = new float[size];
+            std::fill(tmp, tmp + size, val);
+            cudaError_t err = cudaMemcpy(data_, tmp, size * sizeof(float), cudaMemcpyHostToDevice);
+            delete[] tmp;
+            if (err != cudaSuccess) {
+                throw std::runtime_error("CUDA memcpy failed in fill(): " + std::string(cudaGetErrorString(err)));
+            }
+            #endif
+        }
+    }
+
+    static Tensor2D from_vector(size_t rows, size_t cols, const std::vector<float>& data, Device device = Device::CPU) {
         if (data.size() != rows * cols) {
             throw std::invalid_argument("Data size must match the number of elements");
         }
+
         Tensor2D result(rows, cols, 0.0f, device);
-        std::copy(data.begin(), data.end(), result.data_.begin());
+        size_t bytes = rows * cols * sizeof(float);
+
+        if (device == Device::CPU) {
+            std::memcpy(result.data(), data.data(), bytes);
+        } else {
+            #ifdef USE_CUDA
+            cudaError_t err = cudaMemcpy(result.data(), data.data(), bytes, cudaMemcpyHostToDevice);
+            if (err != cudaSuccess) {
+                throw std::runtime_error("CUDA memcpy failed in from_vector: " + std::string(cudaGetErrorString(err)));
+            }
+            #else
+            throw std::runtime_error("CUDA support not enabled — recompile with -DUSE_CUDA");
+            #endif
+        }
+
         return result;
     }
 
     static Tensor2D from_random(size_t rows, size_t cols, Device device=Device::CPU) {
         Tensor2D result(rows, cols, 0.0f, device);
-        for (size_t i = 0; i < rows; ++i) {
-            for (size_t j = 0; j < cols; ++j) {
-                result(i, j) = std::rand() / (float)RAND_MAX;
+        if (device == Device::CPU) {
+            for (size_t i = 0; i < rows; ++i) {
+                for (size_t j = 0; j < cols; ++j) {
+                    result(i, j) = std::rand() / (float)RAND_MAX;
+                }
             }
+        } else {
+            #ifdef USE_CUDA
+            // Generate random values on CPU first, then copy to GPU
+            std::vector<float> cpu_data(rows * cols);
+            for (size_t i = 0; i < rows * cols; ++i) {
+                cpu_data[i] = std::rand() / (float)RAND_MAX;
+            }
+            cudaError_t err = cudaMemcpy(result.data(), cpu_data.data(), rows * cols * sizeof(float), cudaMemcpyHostToDevice);
+            if (err != cudaSuccess) {
+                throw std::runtime_error("CUDA memcpy failed in from_random: " + std::string(cudaGetErrorString(err)));
+            }
+            #endif
         }
         return result;
+    }
+
+    void copy_from(const Tensor2D& other) {
+        if (this == &other) return;
+        if (rows_ != other.rows_ || cols_ != other.cols_ || device_ != other.device_) {
+             std::cerr << "copy_from shape/device mismatch: this=("
+                  << rows_ << "," << cols_ << "," << (int)device_ << ") other=("
+                  << other.rows_ << "," << other.cols_ << "," << (int)other.device_ << ")\n";
+            throw std::invalid_argument("copy_from shape or device mismatch");
+        }
+
+        size_t bytes = rows_ * cols_ * sizeof(float);
+        if (device_ == Device::CPU) {
+            std::memcpy(data_, other.data_, bytes);
+        } else {
+            #ifdef USE_CUDA
+            cudaError_t err = cudaMemcpy(data_, other.data_, bytes, cudaMemcpyDeviceToDevice);
+            if (err != cudaSuccess) {
+                throw std::runtime_error("CUDA memcpy failed in copy_from: " + std::string(cudaGetErrorString(err)));
+            }
+            #else
+            throw std::runtime_error("CUDA not enabled");
+            #endif
+        }
     }
 
     void print() const {
@@ -113,7 +315,39 @@ public:
     }
 
     bool operator==(const Tensor2D& other) const {
-        return rows_ == other.rows_ && cols_ == other.cols_ && data_ == other.data_;
+        if (rows_ != other.rows_ || cols_ != other.cols_) return false;
+        size_t size = rows_ * cols_;
+        
+        if (device_ == Device::CPU && other.device_ == Device::CPU) {
+            for (size_t i = 0; i < size; ++i) {
+                if (data_[i] != other.data_[i]) return false;
+            }
+        } else {
+            #ifdef USE_CUDA
+            // Copy both tensors to CPU for comparison
+            std::vector<float> this_data(size);
+            std::vector<float> other_data(size);
+            
+            if (device_ == Device::GPU) {
+                cudaMemcpy(this_data.data(), data_, size * sizeof(float), cudaMemcpyDeviceToHost);
+            } else {
+                std::copy(data_, data_ + size, this_data.begin());
+            }
+            
+            if (other.device_ == Device::GPU) {
+                cudaMemcpy(other_data.data(), other.data_, size * sizeof(float), cudaMemcpyDeviceToHost);
+            } else {
+                std::copy(other.data_, other.data_ + size, other_data.begin());
+            }
+            
+            for (size_t i = 0; i < size; ++i) {
+                if (this_data[i] != other_data[i]) return false;
+            }
+            #else
+            throw std::runtime_error("CUDA support not enabled for GPU tensor comparison");
+            #endif
+        }
+        return true;
     }
 
     bool operator!=(const Tensor2D& other) const {
@@ -447,4 +681,21 @@ public:
         }
         return max_index;
     }  
+
+    ~Tensor2D() {
+        if (data_) {
+            if (device_ == Device::CPU) {
+                delete[] data_;
+            }
+            else {
+                #ifdef USE_CUDA
+                cudaError_t err = cudaFree(data_);
+                if (err != cudaSuccess) {
+                    std::cerr << "Warning: CUDA free failed: " << cudaGetErrorString(err) << std::endl;
+                }
+                #endif
+            }
+        }
+    }
+
 };

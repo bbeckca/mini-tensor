@@ -20,6 +20,11 @@ public:
     size_t rows() const { return batches_.empty() ? 0 : batches_[0].rows(); }
     size_t cols() const { return batches_.empty() ? 0 : batches_[0].cols(); }
 
+    Tensor3D(const Tensor3D&) = delete;
+    Tensor3D& operator=(const Tensor3D&) = delete;
+    Tensor3D(Tensor3D&&) = default;
+    Tensor3D& operator=(Tensor3D&&) = default;
+
     Tensor3D mat_mul(const Tensor3D& other) {
         if (this->cols() != other.rows()) {
             throw std::invalid_argument("Shape mismatch in mat_mul");
