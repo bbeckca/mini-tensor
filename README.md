@@ -107,13 +107,13 @@ g++ -std=c++17 -Iinclude -Ithird_party/eigen -I/usr/local/cuda/include -DUSE_CUD
 ## Features
 
 - **2D Tensor Operations**: Element-wise arithmetic, broadcasting, matrix multiplication
-- **3D Tensor Operations**: Batched tensors, batched matrix multiplication
+- **3D Tensor Operations**: Batched tensors with contiguous memory layout, batched matrix multiplication
 - **Neural Network Modules**: Linear layers, ReLU activation, Softmax activation, Sequential containers
 - **Forward Pass**: Run input through neural network models
 - **Performance**: Contiguous memory layout for efficient cache access; matmul benchmarks included
 - **IR Trace**: All Tensor2D operations are tracked in a global IR trace for debugging and introspection
 - **Unique Tensor IDs**: Every Tensor2D instance is assigned a unique ID for traceability
-- **CUDA Support**: GPU acceleration with device memory management
+- **CUDA Support**: GPU acceleration with device memory management and CUDA kernels for matrix multiplication
 
 ## CUDA Support
 
@@ -147,18 +147,39 @@ dest.copy_from(source);  // Validates shape and device compatibility
 // Deep copy semantics
 Tensor2D original = Tensor2D::from_random(512, 512, Device::GPU);
 Tensor2D copy(original);  // Proper device allocation and copy
+
+// GPU-accelerated operations
+Tensor2D A = Tensor2D::from_random(1024, 1024, Device::GPU);
+Tensor2D B = Tensor2D::from_random(1024, 1024, Device::GPU);
+Tensor2D C = mat_mul_cuda(A, B);  // CUDA kernel execution
+
+// Batched operations
+Tensor3D batch_A = Tensor3D::from_random(8, 256, 512, Device::GPU);
+Tensor3D batch_B = Tensor3D::from_random(8, 512, 128, Device::GPU);
+Tensor3D batch_C = bmm_cuda(batch_A, batch_B);  // Batched CUDA kernel execution
 ```
 
 ### Performance Benchmarks
 
-On an NVIDIA T4 instance (GCP):
+On an NVIDIA T4 instance (GCP) (CPU benchmarks use `mat_mul_eigen()` and `mat_mul_eigen_parallel()`):
 
 #### Matrix Multiplication Performance
 
 | Shape             | CPU Time (ms) | GPU Time (ms) | Speedup |
 |------------------|---------------|----------------|---------|
-| 512 × 512         | 2287.25       | 1864.76        | 1.23×    |
-| 1024 × 1024       | 23455.9       | 18.49          | 1268.24× |
+| 512 × 512         | 859.59        | 1.20           | 714.93×  |
+| 1024 × 1024       | 6912.91       | 10.32          | 669.61×  |
+
+#### Batched Matrix Multiplication Performance
+
+| Batch × M × K × N         | CPU Time (ms) | GPU Time (ms) | Speedup |
+|---------------------------|---------------|----------------|---------|
+| 8 × 16 × 16 × 16          | 0.129         | 0.036         | 3.6×    |
+| 16 × 64 × 64 × 64         | 0.923         | 0.003         | 292×    |
+| 32 × 128 × 128 × 128      | 8.985         | 0.027         | 332×    |
+| 8 × 256 × 512 × 128       | 18.751        | 0.040         | 474×    |
+| 4 × 512 × 512 × 512       | 142.519       | 0.236         | 603×    |
+| 2 × 1024 × 1024 × 1024    | 1,110.492     | 1.607         | 691×    |
 
 #### Device Transfer Performance
 
@@ -175,9 +196,11 @@ On an NVIDIA T4 instance (GCP):
 
 The library automatically tracks all major operations in a global IR trace, including:
 - **Arithmetic operators**: `+`, `-`, `*`, `/`
-- **Matrix operations**: `mat_mul`, `mat_mul_eigen`, `mat_mul_eigen_parallel`, `mat_mul_cuda`
+- **Matrix operations**: `mat_mul`, `mat_mul_eigen`, `mat_mul_eigen_parallel`, `mat_mul_cuda`, `bmm_cuda`
 - **Element-wise functions**: `abs`, `neg`, `relu`
 - **Neural network modules**: `Linear`, `Softmax`, `Sequential`
+
+The IR trace records tensor shapes as `std::variant<std::pair<size_t, size_t>, std::tuple<size_t, size_t, size_t>>` to support both 2D and 3D tensors.
 
 ### Example IR Trace Output
 

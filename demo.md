@@ -235,7 +235,7 @@ Tensor2D result = a.mat_mul_eigen(b);
 ```
 
 #### Performance Comparison
-Benchmark results comparing manual implementation vs Eigen:
+Benchmark results comparing manual implementation vs Eigen (all CPU benchmarks use `mat_mul_eigen()` and `mat_mul_eigen_parallel()`):
 
 | Matrix Size | Manual (μs) | Eigen (μs) | Speedup |
 |-------------|-------------|------------|---------|
@@ -251,9 +251,16 @@ Benchmark results comparing manual implementation vs Eigen:
 - Eigen's optimized BLAS implementation scales better with matrix size
 - The manual implementation uses a naive O(n³) algorithm, while Eigen uses optimized algorithms
 
+#### GPU vs CPU Performance (Eigen-based CPU benchmarks)
+
+| Shape             | CPU Time (ms) | GPU Time (ms) | Speedup |
+|------------------|---------------|----------------|---------|
+| 512 × 512         | 859.59        | 1.20           | 714.93×  |
+| 1024 × 1024       | 6912.91       | 10.32          | 669.61×  |
+
 ## Tensor3D and Batched Matrix Operations
 
-`Tensor3D` provides support for batched 2D tensors and batched matrix multiplication, enabling efficient operations on a stack of matrices (e.g., for mini-batch neural network computations).
+`Tensor3D` provides support for batched 2D tensors and batched matrix multiplication, enabling efficient operations on a stack of matrices (e.g., for mini-batch neural network computations). The implementation uses a contiguous `float*` buffer for GPU compatibility and efficient memory access, improving compatibility with batched GPU matmul via `bmm_cuda()`.
 
 ### Tensor3D API
 
@@ -266,19 +273,24 @@ Tensor3D batch(8, 16, 16, 1.0f);
 // Construct a batch of 2D tensors with random values in [0, 1)
 Tensor3D random_batch = Tensor3D::from_random(8, 16, 16);
 
-// Access a specific matrix in the batch
-Tensor2D& mat = batch[0];
+// Initialize from explicit data
+std::vector<float> data = {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f};
+Tensor3D explicit_batch = Tensor3D::from_vector(2, 2, 2, data);
+
+// Access a specific matrix in the batch (returns a non-owning view)
+Tensor2D mat = batch[0];  // Delegates to slice_batch(0)
 
 // Get batch size and shape
 size_t batch_size = batch.batch_size();
 size_t rows = batch.rows();
 size_t cols = batch.cols();
 
-// Batched matrix multiplication (manual and Eigen)
-Tensor3D A(batch, M, K, 1.0f);
-Tensor3D B(batch, K, N, 2.0f);
-Tensor3D C_manual = A.mat_mul(B);        // Manual implementation
-Tensor3D C_eigen  = A.mat_mul_eigen(B);  // Eigen-accelerated
+// Batched matrix multiplication (manual, Eigen, and CUDA)
+Tensor3D A(8, M, K, 1.0f);
+Tensor3D B(8, K, N, 2.0f);
+Tensor3D C_manual = A.mat_mul(B);                    // Manual implementation
+Tensor3D C_eigen  = A.mat_mul_eigen(B);              // Eigen-accelerated
+Tensor3D C_cuda   = bmm_cuda(A.to(Device::GPU), B.to(Device::GPU));  // CUDA-accelerated
 ```
 
 ### Batched Matrix Multiplication Benchmarks
@@ -298,9 +310,21 @@ Tensor3D C_eigen  = A.mat_mul_eigen(B);  // Eigen-accelerated
 - For very large matrices, parallelization may have diminishing returns due to thread overhead.
 - Batched matmul is essential for deep learning and large-scale computations.
 
-### Example: Batched Matrix Multiplication (with Parallel Eigen)
+### GPU vs CPU Batched Matrix Multiplication (Eigen Parallel CPU benchmarks)
+
+| Batch × M × K × N         | CPU Time (ms) | GPU Time (ms) | Speedup |
+|---------------------------|---------------|----------------|---------|
+| 8 × 16 × 16 × 16          | 0.129         | 0.036         | 3.6×    |
+| 16 × 64 × 64 × 64         | 0.923         | 0.003         | 292×    |
+| 32 × 128 × 128 × 128      | 8.985         | 0.027         | 332×    |
+| 8 × 256 × 512 × 128       | 18.751        | 0.040         | 474×    |
+| 4 × 512 × 512 × 512       | 142.519       | 0.236         | 603×    |
+| 2 × 1024 × 1024 × 1024    | 1,110.492     | 1.607         | 691×    |
+
+### Example: Batched Matrix Multiplication (with Parallel Eigen and CUDA)
 ```cpp
 #include "tensor3d.hpp"
+#include "matmul_cuda.hpp"
 #include <iostream>
 
 int main() {
@@ -309,9 +333,17 @@ int main() {
     Tensor3D C = A.mat_mul(B); // Manual batched matmul
     Tensor3D D = A.mat_mul_eigen(B); // Eigen batched matmul
     Tensor3D E = A.mat_mul_eigen_parallel(B); // Eigen batched matmul (parallel)
-    std::cout << "C[0](0,0): " << C[0](0,0) << std::endl;
-    std::cout << "D[0](0,0): " << D[0](0,0) << std::endl;
-    std::cout << "E[0](0,0): " << E[0](0,0) << std::endl;
+    
+    #ifdef USE_CUDA
+    Tensor3D A_gpu = A.to(Device::GPU);
+    Tensor3D B_gpu = B.to(Device::GPU);
+    Tensor3D F = bmm_cuda(A_gpu, B_gpu); // CUDA batched matmul
+    std::cout << "F[0](0,0): " << F.to(Device::CPU)[0](0,0) << std::endl;  // [0] delegates to slice_batch(0)
+    #endif
+    
+    std::cout << "C[0](0,0): " << C[0](0,0) << std::endl;  // [0] delegates to slice_batch(0)
+    std::cout << "D[0](0,0): " << D[0](0,0) << std::endl;  // [0] delegates to slice_batch(0)
+    std::cout << "E[0](0,0): " << E[0](0,0) << std::endl;  // [0] delegates to slice_batch(0)
     return 0;
 }
 ```
@@ -320,6 +352,19 @@ int main() {
 - Tensor3D is tested in `tests/test_runner.cpp` (see [README](README.md) for test commands).
 - Most implementation is in the header (`include/tensor3d.hpp`). The `.cpp` file is provided for completeness.
 - See [README](README.md) for build/test/benchmark instructions including Tensor3D.
+
+### Advanced Tensor3D Operations
+
+```cpp
+// Create a non-owning view of a specific batch
+Tensor2D batch_view = tensor3d.slice_batch(2);  // View of batch index 2
+
+// Copy data into a specific batch slice
+Tensor2D new_data = Tensor2D::from_random(16, 16);
+tensor3d.set_batch(1, new_data);  // Copy new_data into batch index 1
+
+// Note: slice_batch() and set_batch() are currently CPU-only operations
+```
 
 ## Neural Network Modules
 
@@ -740,6 +785,8 @@ The Linear layer generates three trace entries:
 2. **operator+**: Addition of bias to the result
 3. **linear**: Composite operation recording all inputs and output
 
+**Note**: The IR trace records shapes as `std::variant<std::pair<size_t, size_t>, std::tuple<size_t, size_t, size_t>>` to support both 2D and 3D tensors.
+
 #### Sequential Model IR Trace
 
 A complete Sequential model demonstrates the full computation graph:
@@ -1030,7 +1077,14 @@ Tensor2D copy(original);  // Proper device allocation and copy
 Tensor2D A = Tensor2D::from_random(1024, 1024, Device::GPU);
 Tensor2D B = Tensor2D::from_random(1024, 1024, Device::GPU);
 Tensor2D C = mat_mul_cuda(A, B);  // Runs on GPU
+
+// GPU-accelerated batched matrix multiplication
+Tensor3D batch_A = Tensor3D::from_random(8, 256, 512, Device::GPU);
+Tensor3D batch_B = Tensor3D::from_random(8, 512, 128, Device::GPU);
+Tensor3D batch_C = bmm_cuda(batch_A, batch_B);  // Runs on GPU
 ```
+
+The `matmul_cuda.cu` file defines both `mat_mul_cuda()` (for Tensor2D) and `bmm_cuda()` (for Tensor3D) CUDA kernels.
 
 ### Performance Benchmarks
 
@@ -1155,6 +1209,33 @@ Printing IRTrace:
     Inputs : tensor_0, tensor_1
     Output : tensor_2
     Shape  : 2 x 2
+    Device : GPU
+```
+
+Batched GPU operations are also tracked:
+
+```cpp
+#include "tensor3d.hpp"
+#include "matmul_cuda.hpp"
+#include "ir_trace.hpp"
+
+TensorID::reset();
+IRTrace::reset();
+
+Tensor3D A = Tensor3D::from_random(4, 8, 8, Device::GPU);
+Tensor3D B = Tensor3D::from_random(4, 8, 8, Device::GPU);
+Tensor3D C = bmm_cuda(A, B);
+
+IRTrace::print();
+```
+
+**Output:**
+```text
+Printing IRTrace:
+[0] Operation: bmm_cuda
+    Inputs : tensor_0, tensor_1
+    Output : tensor_2
+    Shape  : 4 x 8 x 8
     Device : GPU
 ```
 
