@@ -91,7 +91,7 @@ void benchmark_matmul_cuda_vs_cpu(int N) {
 
     // CPU baseline
     auto cpu_start = std::chrono::high_resolution_clock::now();
-    Tensor2D C_cpu = A_cpu.mat_mul(B_cpu);
+    Tensor2D C_cpu = A_cpu.mat_mul_eigen(B_cpu);
     auto cpu_end = std::chrono::high_resolution_clock::now();
     double cpu_ms = std::chrono::duration<double, std::milli>(cpu_end - cpu_start).count();
     
@@ -114,9 +114,6 @@ void benchmark_matmul_cuda_vs_cpu(int N) {
     std::cout << "Speedup:  " << speedup << "x\n\n";
 }
 
-#endif
-
-#ifdef USE_CUDA
 void benchmark_device_transfer(size_t N) {
     std::cout << "Benchmarking device transfer with shape: " << N << " x " << N << std::endl;
 
@@ -148,8 +145,40 @@ void benchmark_device_transfer(size_t N) {
     std::cout << "GPU → CPU transfer: " << gpu_to_cpu_us << " us\n";
     std::cout << "Total roundtrip:    " << (cpu_to_gpu_us + gpu_to_cpu_us) << " us\n\n";
 }
-#endif
 
+void benchmark_bmm_vs_bmm_cuda(size_t B, size_t M, size_t K, size_t N) {
+    std::cout << "Benchmarking batched matmul CPU vs GPU with shapes: ("
+              << B << ", " << M << ", " << K << ") * ("
+              << B << ", " << K << ", " << N << ")\n";
+
+    // Create CPU tensors once and reuse
+    Tensor3D A_cpu = Tensor3D::from_random(B, M, K);
+    Tensor3D B_cpu = Tensor3D::from_random(B, K, N);
+
+    // CPU baseline (mat_mul_eigen_parallel)
+    auto cpu_start = std::chrono::high_resolution_clock::now();
+    Tensor3D C_cpu = A_cpu.mat_mul_eigen_parallel(B_cpu);
+    auto cpu_end = std::chrono::high_resolution_clock::now();
+    double cpu_ms = std::chrono::duration<double, std::milli>(cpu_end - cpu_start).count();
+    
+    // Create GPU tensors
+    Tensor3D A_gpu = A_cpu.to(Device::GPU);
+    Tensor3D B_gpu = B_cpu.to(Device::GPU);
+
+    // GPU batched matmul
+    auto gpu_start = std::chrono::high_resolution_clock::now();
+    Tensor3D C_gpu = bmm_cuda(A_gpu, B_gpu);
+    auto gpu_end = std::chrono::high_resolution_clock::now();
+    double gpu_ms = std::chrono::duration<double, std::milli>(gpu_end - gpu_start).count();
+
+    // Result
+    double speedup = cpu_ms / gpu_ms;
+    std::cout << "CPU time (mat_mul_eigen_parallel): " << cpu_ms << " ms\n";
+    std::cout << "GPU time (bmm_cuda):              " << gpu_ms << " ms\n";
+    std::cout << "Speedup:                           " << speedup << "x\n\n";
+}
+
+#endif
 
 int main() {
     benchmark_matmul(16, 16, 16);
@@ -179,6 +208,12 @@ int main() {
     benchmark_matmul_cuda_vs_cpu(1024);
     benchmark_device_transfer(512);
     benchmark_device_transfer(1024);
+    benchmark_bmm_vs_bmm_cuda(8, 16, 16, 16);
+    benchmark_bmm_vs_bmm_cuda(16, 64, 64, 64);
+    benchmark_bmm_vs_bmm_cuda(32, 128, 128, 128);
+    benchmark_bmm_vs_bmm_cuda(8, 256, 512, 128);
+    benchmark_bmm_vs_bmm_cuda(4, 512, 512, 512);
+    benchmark_bmm_vs_bmm_cuda(2, 1024, 1024, 1024);
     std::cout << std::endl;
     #endif
 }
