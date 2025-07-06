@@ -2,13 +2,15 @@
 #include <string>
 #include <vector>
 #include <iostream>
+#include <variant>
+#include <tuple>
 #include "device.hpp"
 
 struct Op {
     std::string op_name;
     std::vector<std::string> inputs;
     std::string output;
-    std::pair<size_t, size_t> shape;
+    std::variant<std::pair<size_t, size_t>, std::tuple<size_t, size_t, size_t>> shape;
     Device device;
 };
 
@@ -18,6 +20,14 @@ public:
                        const std::vector<std::string>& inputs,
                        const std::string& output,
                        const std::pair<size_t, size_t>& shape,
+                       const Device& device) {
+        ops_.push_back({op_name, inputs, output, shape, device});
+    }
+
+    static void record(const std::string& op_name,
+                       const std::vector<std::string>& inputs,
+                       const std::string& output,
+                       const std::tuple<size_t, size_t, size_t>& shape,
                        const Device& device) {
         ops_.push_back({op_name, inputs, output, shape, device});
     }
@@ -37,7 +47,15 @@ public:
             }
             std::cout << "\n";
             std::cout << "    Output : " << op.output << "\n";
-            std::cout << "    Shape  : " << op.shape.first << " x " << op.shape.second << "\n";
+            std::cout << "    Shape  : ";
+            std::visit([](const auto& shape) {
+                if constexpr (std::is_same_v<decltype(shape), const std::pair<size_t, size_t>&>) {
+                    std::cout << shape.first << " x " << shape.second;
+                } else {
+                    std::cout << std::get<0>(shape) << " x " << std::get<1>(shape) << " x " << std::get<2>(shape);
+                }
+            }, op.shape);
+            std::cout << "\n";
             std::cout << "    Device : " << to_string(op.device) << "\n";
         }
     }

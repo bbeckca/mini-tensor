@@ -8,10 +8,12 @@ private:
     float* data_;
     size_t B_, M_, N_;
     Device device_;
+    std::string id_;
+    bool owns_data_;
 
 public:
     Tensor3D(size_t B, size_t M, size_t N, float val = 0.0f, Device device = Device::CPU)
-        : B_(B), M_(M), N_(N), device_(device) {
+        : B_(B), M_(M), N_(N), device_(device), id_(TensorID::generate()), owns_data_(true) {
         size_t size = B * M * N;
 
         if (device == Device::CPU) {
@@ -43,6 +45,8 @@ public:
     }
 
     ~Tensor3D() {
+        if (!owns_data_) return;
+
         if (device_ == Device::CPU) {
             delete[] data_;
         } else {
@@ -54,15 +58,84 @@ public:
         }
     }
 
-    Tensor3D(const Tensor3D&) = delete;
-    Tensor3D& operator=(const Tensor3D&) = delete;
-    Tensor3D(Tensor3D&&) = default;
-    Tensor3D& operator=(Tensor3D&&) = default;
+    Tensor3D(size_t B, size_t M, size_t N, float* external_data, Device device, bool owns_data)
+        : B_(B), M_(M), N_(N), data_(external_data), device_(device), id_(TensorID::generate()), owns_data_(owns_data) {}
 
+    Tensor3D(const Tensor3D& other)
+        : B_(other.B_), M_(other.M_), N_(other.N_), device_(other.device_), id_(TensorID::generate()), data_(nullptr), owns_data_(true) {
+        size_t size = B_ * M_ * N_;
+        if (device_ == Device::CPU) {
+            data_ = new float[size];
+            std::copy(other.data_, other.data_ + size, data_);
+        } else {
+            #ifdef USE_CUDA
+            cudaError_t err = cudaMalloc(&data_, size * sizeof(float));
+            if (err != cudaSuccess) {
+                throw std::runtime_error("CUDA malloc failed in copy constructor: " + std::string(cudaGetErrorString(err)));
+            }
+            err = cudaMemcpy(data_, other.data_, size * sizeof(float), cudaMemcpyDeviceToDevice);
+            if (err != cudaSuccess) {
+                cudaFree(data_);
+                throw std::runtime_error("CUDA memcpy failed in copy constructor: " + std::string(cudaGetErrorString(err)));
+            }
+            #else
+            throw std::runtime_error("CUDA support not enabled");
+            #endif
+        }
+    }
+
+    Tensor3D& operator=(const Tensor3D& other) {
+        if (this != &other) {
+            if (device_ == Device::CPU) {
+                delete[] data_;
+            } else {
+                #ifdef USE_CUDA
+                cudaError_t err = cudaFree(data_);
+                if (err != cudaSuccess) {
+                    std::cerr << "Warning: CUDA free failed in assignment: " << cudaGetErrorString(err) << std::endl;
+                }
+                #endif
+            }
+            
+            B_ = other.B_;
+            M_ = other.M_;
+            N_ = other.N_;
+            device_ = other.device_;
+            id_ = TensorID::generate();
+            owns_data_ = true;
+            
+            size_t size = B_ * M_ * N_;
+            if (device_ == Device::CPU) {
+                data_ = new float[size];
+                std::copy(other.data_, other.data_ + size, data_);
+            } else {
+                #ifdef USE_CUDA
+                cudaError_t err = cudaMalloc(&data_, size * sizeof(float));
+                if (err != cudaSuccess) {
+                    throw std::runtime_error("CUDA malloc failed in assignment: " + std::string(cudaGetErrorString(err)));
+                }
+                err = cudaMemcpy(data_, other.data_, size * sizeof(float), cudaMemcpyDeviceToDevice);
+                if (err != cudaSuccess) {
+                    cudaFree(data_);
+                    throw std::runtime_error("CUDA memcpy failed in assignment: " + std::string(cudaGetErrorString(err)));
+                }
+                #else
+                throw std::runtime_error("CUDA support not enabled");
+                #endif
+            }
+        }
+        return *this;
+    }
 
     size_t batch_size() const { return B_; }
     size_t rows() const { return M_; }
     size_t cols() const { return N_; }
+    float* data() { return data_; }
+    const float* data() const { return data_; }
+    Device get_device() const { return device_; }
+    const std::string& get_id() const { return id_; }
+    bool is_view() const { return !owns_data_; }
+    std::tuple<size_t, size_t, size_t> shape() const { return std::make_tuple(B_, M_, N_); }
 
     Tensor2D operator[](size_t index) const {
         return slice_batch(index);  // returns a view (non-owning)
@@ -119,6 +192,49 @@ public:
         }
         return result;
     }
+
+    static Tensor3D from_vector(size_t batch, size_t rows, size_t cols, const std::vector<float>& data, Device device = Device::CPU) {
+        if (data.size() != batch * rows * cols) {
+            throw std::invalid_argument("Data size must match the number of elements");
+        }
+
+        Tensor3D result(batch, rows, cols, 0.0f, device);
+        size_t bytes = batch * rows * cols * sizeof(float);
+
+        if (device == Device::CPU) {
+            std::memcpy(result.data(), data.data(), bytes);
+        } else {
+            #ifdef USE_CUDA
+            cudaError_t err = cudaMemcpy(result.data(), data.data(), bytes, cudaMemcpyHostToDevice);
+            if (err != cudaSuccess) {
+                throw std::runtime_error("CUDA memcpy failed in from_vector: " + std::string(cudaGetErrorString(err)));
+            }
+            #else
+            throw std::runtime_error("CUDA support not enabled — recompile with -DUSE_CUDA");
+            #endif
+        }
+
+        return result;
+    }
+
+    #ifdef USE_CUDA
+    Tensor3D to(Device target) const {
+        if (device_ == target) return *this;
+
+        Tensor3D result(B_, M_, N_, 0.0f, target);
+        size_t bytes = B_ * M_ * N_ * sizeof(float);
+        cudaError_t err;
+        if (target == Device::GPU) {
+            err = cudaMemcpy(result.data_, data_, bytes, cudaMemcpyHostToDevice);
+        } else {
+            err = cudaMemcpy(result.data_, data_, bytes, cudaMemcpyDeviceToHost);
+        }
+        if (err != cudaSuccess) {
+            throw std::runtime_error("CUDA memcpy failed in to(): " + std::string(cudaGetErrorString(err)));
+        }
+        return result;
+    }
+    #endif
 
     Tensor2D slice_batch(size_t b) const {
         if (device_ != Device::CPU)

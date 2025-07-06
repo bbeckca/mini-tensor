@@ -13,6 +13,18 @@
 #include "ir_trace.hpp"
 #include "matmul_cuda.hpp"
 
+
+bool shapes_equal(const std::variant<std::pair<size_t, size_t>, std::tuple<size_t, size_t, size_t>>& variant_shape, 
+                  const std::pair<size_t, size_t>& pair_shape) {
+    return std::visit([&pair_shape](const auto& shape) -> bool {
+        if constexpr (std::is_same_v<decltype(shape), const std::pair<size_t, size_t>&>) {
+            return shape == pair_shape;
+        } else {
+            return false;
+        }
+    }, variant_shape);
+}
+
 void test_constructor_with_default_value() {
     std::cout << "Running test: constructor with default value... ";
     Tensor2D t(2, 3, 42.0f);
@@ -1013,6 +1025,26 @@ void test_mat_mul_cuda_with_incompatible_device() {
     assert(exception_thrown);
     std::cout << "PASSED" << std::endl;
 }
+
+void test_bmm_cuda_with_same_shapes() {
+    std::cout << "Running test: bmm_cuda() with same shapes... ";
+    Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Device::GPU);
+    Tensor3D t2 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Device::GPU);
+    
+    Tensor3D t3 = bmm_cuda(t1, t2);
+    assert(t3.get_device() == Device::GPU);
+    Tensor3D t3_cpu = t3.to(Device::CPU);
+    
+    assert(t3_cpu[0](0, 0) == 7.0f);
+    assert(t3_cpu[0](0, 1) == 10.0f);
+    assert(t3_cpu[0](1, 0) == 15.0f);
+    assert(t3_cpu[0](1, 1) == 22.0f);
+    assert(t3_cpu[1](0, 0) == 67.0f);
+    assert(t3_cpu[1](0, 1) == 78.0f);
+    assert(t3_cpu[1](1, 0) == 91.0f);
+    assert(t3_cpu[1](1, 1) == 106.0f);
+    std::cout << "PASSED" << std::endl;
+}
 #endif
 
 void test_linear_forward() {
@@ -1156,6 +1188,22 @@ void test_tensor3d_element_access_and_mutation() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_tensor3d_getters() {
+    std::cout << "Running test: Tensor3D getters... ";
+    Tensor3D t3d(2, 3, 4, 7.0f, Device::CPU);
+
+    auto shape = t3d.shape();
+    assert(std::get<0>(shape) == 2);
+    assert(std::get<1>(shape) == 3);
+    assert(std::get<2>(shape) == 4);
+
+    assert(t3d.get_device() == Device::CPU);
+    assert(!t3d.get_id().empty());
+    assert(t3d.data() != nullptr);
+
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_tensor3d_from_random() {
     std::cout << "Running test: Tensor3D from_random... ";
     Tensor3D t3d = Tensor3D::from_random(2, 2, 2);
@@ -1174,25 +1222,44 @@ void test_tensor3d_from_random() {
 
 void test_tensor3d_slice_batch() {
     std::cout << "Running test: Tensor3D slice_batch... ";
-    Tensor3D t3d = Tensor3D::from_random(2, 2, 2);
-    Tensor2D t2d = t3d.slice_batch(0);
-    assert(t2d.is_view());
-    assert(t2d.rows() == 2);
-    assert(t2d.cols() == 2);
+    
+    Tensor3D t3d = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f});
+    
+    Tensor2D slice0 = t3d.slice_batch(0);
+    assert(slice0.is_view());
+    assert(slice0.rows() == 2);
+    assert(slice0.cols() == 2);
+    
+    assert(slice0(0, 0) == 1.0f);
+    assert(slice0(0, 1) == 2.0f);
+    assert(slice0(1, 0) == 3.0f);
+    assert(slice0(1, 1) == 4.0f);
+    
+    Tensor2D slice1 = t3d.slice_batch(1);
+    assert(slice1.is_view());
+    assert(slice1.rows() == 2);
+    assert(slice1.cols() == 2);
+    
+    assert(slice1(0, 0) == 5.0f);
+    assert(slice1(0, 1) == 6.0f);
+    assert(slice1(1, 0) == 7.0f);
+    assert(slice1(1, 1) == 8.0f);
+    
+    slice0(0, 0) = 42.0f;
+    assert(t3d[0](0, 0) == 42.0f);
+    assert(slice0(0, 0) == 42.0f);
+    
+    assert(slice0.data() == t3d.data() + 0 * 2 * 2);
+    assert(slice1.data() == t3d.data() + 1 * 2 * 2);
+    
     std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_mat_mul() {
     std::cout << "Running test: Tensor3D mat_mul... ";
 
-    Tensor3D t1(2, 2, 2);
-    Tensor3D t2(2, 2, 2);
-
-    t1.set_batch(0, Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}));
-    t2.set_batch(0, Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f}));
-
-    t1.set_batch(1, Tensor2D::from_vector(2, 2, {9.0f, 10.0f, 11.0f, 12.0f}));
-    t2.set_batch(1, Tensor2D::from_vector(2, 2, {13.0f, 14.0f, 15.0f, 16.0f}));
+    Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f});
+    Tensor3D t2 = Tensor3D::from_vector(2, 2, 2, {5.0f, 6.0f, 7.0f, 8.0f, 13.0f, 14.0f, 15.0f, 16.0f});
 
     Tensor3D t3 = t1.mat_mul(t2);
 
@@ -1214,14 +1281,8 @@ void test_tensor3d_mat_mul() {
 void test_tensor3d_mat_mul_eigen() {
     std::cout << "Running test: Tensor3D mat_mul_eigen... ";
 
-    Tensor3D t1(2, 2, 2);
-    Tensor3D t2(2, 2, 2);
-
-    t1.set_batch(0, Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}));
-    t2.set_batch(0, Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f}));
-
-    t1.set_batch(1, Tensor2D::from_vector(2, 2, {9.0f, 10.0f, 11.0f, 12.0f}));
-    t2.set_batch(1, Tensor2D::from_vector(2, 2, {13.0f, 14.0f, 15.0f, 16.0f}));
+    Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f});
+    Tensor3D t2 = Tensor3D::from_vector(2, 2, 2, {5.0f, 6.0f, 7.0f, 8.0f, 13.0f, 14.0f, 15.0f, 16.0f});
 
     Tensor3D t3 = t1.mat_mul_eigen(t2);
 
@@ -1243,14 +1304,8 @@ void test_tensor3d_mat_mul_eigen() {
 void test_tensor3d_mat_mul_eigen_parallel() {
     std::cout << "Running test: Tensor3D mat_mul_eigen_parallel... ";
 
-    Tensor3D t1(2, 2, 2);
-    Tensor3D t2(2, 2, 2);
-
-    t1.set_batch(0, Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}));
-    t2.set_batch(0, Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f}));
-
-    t1.set_batch(1, Tensor2D::from_vector(2, 2, {9.0f, 10.0f, 11.0f, 12.0f}));
-    t2.set_batch(1, Tensor2D::from_vector(2, 2, {13.0f, 14.0f, 15.0f, 16.0f}));
+    Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f});
+    Tensor3D t2 = Tensor3D::from_vector(2, 2, 2, {5.0f, 6.0f, 7.0f, 8.0f, 13.0f, 14.0f, 15.0f, 16.0f});
 
     Tensor3D t3 = t1.mat_mul_eigen_parallel(t2);
 
@@ -1289,7 +1344,7 @@ void test_ir_trace_for_arithmetic_operators() {
     assert(ops[1].op_name == "operator-");
     assert(ops[2].op_name == "operator*");
     assert(ops[3].op_name == "operator/");
-    assert(ops[3].shape == std::make_pair(rows, cols));
+    assert(shapes_equal(ops[3].shape, std::make_pair(rows, cols)));
     assert(ops[3].device == Device::CPU);
 
     std::cout << "PASSED" << std::endl;
@@ -1312,13 +1367,13 @@ void test_ir_trace_for_operators() {
     assert(ops[0].inputs[0] == a.get_id());
     assert(ops[0].inputs[1] == b.get_id());
     assert(ops[0].output == c.get_id());
-    assert(ops[0].shape == std::make_pair(2UL, 2UL));
+    assert(shapes_equal(ops[0].shape, std::make_pair(2UL, 2UL)));
     assert(ops[0].device == Device::CPU);
 
     assert(ops[1].op_name == "relu");
     assert(ops[1].inputs[0] == c.get_id());
     assert(ops[1].output == d.get_id());
-    assert(ops[1].shape == std::make_pair(2UL, 2UL));
+    assert(shapes_equal(ops[1].shape, std::make_pair(2UL, 2UL)));
     assert(ops[1].device == Device::CPU);
 
     std::cout << "PASSED" << std::endl;
@@ -1341,19 +1396,19 @@ void test_ir_trace_for_linear() {
     assert(ops[0].op_name == "mat_mul");
     assert(ops[0].inputs.size() == 2);
     assert(ops[0].output == "tensor_5");
-    assert(ops[0].shape == std::make_pair(1UL, 2UL));
+    assert(shapes_equal(ops[0].shape, std::make_pair(1UL, 2UL)));
     assert(ops[0].device == Device::CPU);
     
     assert(ops[1].op_name == "operator+");
     assert(ops[1].inputs.size() == 2);
     assert(ops[1].output == output.get_id());
-    assert(ops[1].shape == std::make_pair(1UL, 2UL));
+    assert(shapes_equal(ops[1].shape, std::make_pair(1UL, 2UL)));
     assert(ops[1].device == Device::CPU);
     
     assert(ops[2].op_name == "linear");
     assert(ops[2].inputs.size() == 3);
     assert(ops[2].output == output.get_id());
-    assert(ops[2].shape == std::make_pair(1UL, 2UL));
+    assert(shapes_equal(ops[2].shape, std::make_pair(1UL, 2UL)));
     assert(ops[2].device == Device::CPU);
     
     std::cout << "PASSED" << std::endl;
@@ -1376,7 +1431,7 @@ void test_ir_trace_for_softmax() {
     assert(ops[0].inputs[0] == input.get_id());
     assert(ops[0].inputs.size() == 1);
     assert(ops[0].output == output.get_id());
-    assert(ops[0].shape == output.shape());
+    assert(shapes_equal(ops[0].shape, output.shape()));
     assert(ops[0].device == output.get_device());
 
     std::cout << "PASSED" << std::endl;
@@ -1404,7 +1459,7 @@ void test_ir_trace_for_sequential() {
     assert(ops[6].op_name == "linear");
     assert(ops[7].op_name == "sequential");
     assert(ops[7].output == output.get_id());
-    assert(ops[7].shape == output.shape());
+    assert(shapes_equal(ops[7].shape, output.shape()));
     assert(ops[7].device == output.get_device());
 
     std::cout << "PASSED" << std::endl;
@@ -1692,6 +1747,8 @@ int main() {
     test_mat_mul_cuda_with_identity_matrix();
     test_mat_mul_cuda_with_incompatible_device();
     test_mat_mul_cuda_with_incompatible_shapes();
+
+    test_bmm_cuda_with_same_shapes();
     std::cout << std::endl;
     #endif
 
@@ -1709,6 +1766,7 @@ int main() {
     test_tensor3d_element_access_and_mutation();
     test_tensor3d_from_random();
     test_tensor3d_slice_batch();
+    test_tensor3d_getters();
     std::cout << std::endl;
 
     test_tensor3d_mat_mul();

@@ -59,7 +59,7 @@ public:
       id_(TensorID::generate()), owns_data_(owns_data) {}
 
     Tensor2D(const Tensor2D& other)
-        : rows_(other.rows_), cols_(other.cols_), device_(other.device_), id_(TensorID::generate()), data_(nullptr) {
+        : rows_(other.rows_), cols_(other.cols_), device_(other.device_), id_(TensorID::generate()), data_(nullptr), owns_data_(true) {
         size_t size = rows_ * cols_;
         if (device_ == Device::CPU) {
             data_ = new float[size];
