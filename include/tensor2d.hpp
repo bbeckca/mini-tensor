@@ -23,10 +23,11 @@ private:
     float* data_;
     std::string id_;
     Device device_;
+    bool owns_data_;
 
 public:
     Tensor2D(size_t rows, size_t cols, float val = 0.0f, Device device = Device::CPU)
-        : rows_(rows), cols_(cols), device_(device), id_(TensorID::generate()) {
+        : rows_(rows), cols_(cols), device_(device), id_(TensorID::generate()), owns_data_(true) {
         size_t size = rows * cols;
         if (device == Device::CPU) {
             data_ = new float[size];
@@ -52,6 +53,10 @@ public:
             #endif
         }
     }
+
+    Tensor2D(size_t rows, size_t cols, float* external_data, Device device, bool owns_data)
+    : rows_(rows), cols_(cols), data_(external_data), device_(device),
+      id_(TensorID::generate()), owns_data_(owns_data) {}
 
     Tensor2D(const Tensor2D& other)
         : rows_(other.rows_), cols_(other.cols_), device_(other.device_), id_(TensorID::generate()), data_(nullptr) {
@@ -79,36 +84,37 @@ public:
             if (data_) {
                 if (device_ == Device::CPU) {
                     delete[] data_;
-                            } else {
+                } else {
+                    #ifdef USE_CUDA
+                    cudaError_t err = cudaFree(data_);
+                    if (err != cudaSuccess) {
+                        std::cerr << "Warning: CUDA free failed in assignment: " << cudaGetErrorString(err) << std::endl;
+                    }
+                    #endif
+                }
+            }
+            rows_ = other.rows_;
+            cols_ = other.cols_;
+            device_ = other.device_;
+            id_ = TensorID::generate();
+            size_t size = rows_ * cols_;
+            if (device_ == Device::CPU) {
+                data_ = new float[size];
+                std::copy(other.data_, other.data_ + size, data_);
+            } else {
                 #ifdef USE_CUDA
-                cudaError_t err = cudaFree(data_);
+                cudaError_t err = cudaMalloc(&data_, size * sizeof(float));
                 if (err != cudaSuccess) {
-                    std::cerr << "Warning: CUDA free failed in assignment: " << cudaGetErrorString(err) << std::endl;
+                    throw std::runtime_error("CUDA malloc failed in assignment: " + std::string(cudaGetErrorString(err)));
+                }
+                err = cudaMemcpy(data_, other.data_, size * sizeof(float), cudaMemcpyDeviceToDevice);
+                if (err != cudaSuccess) {
+                    cudaFree(data_);
+                    throw std::runtime_error("CUDA memcpy failed in assignment: " + std::string(cudaGetErrorString(err)));
                 }
                 #endif
             }
-        }
-        rows_ = other.rows_;
-        cols_ = other.cols_;
-        device_ = other.device_;
-        id_ = TensorID::generate();
-        size_t size = rows_ * cols_;
-        if (device_ == Device::CPU) {
-            data_ = new float[size];
-            std::copy(other.data_, other.data_ + size, data_);
-        } else {
-            #ifdef USE_CUDA
-            cudaError_t err = cudaMalloc(&data_, size * sizeof(float));
-            if (err != cudaSuccess) {
-                throw std::runtime_error("CUDA malloc failed in assignment: " + std::string(cudaGetErrorString(err)));
-            }
-            err = cudaMemcpy(data_, other.data_, size * sizeof(float), cudaMemcpyDeviceToDevice);
-            if (err != cudaSuccess) {
-                cudaFree(data_);
-                throw std::runtime_error("CUDA memcpy failed in assignment: " + std::string(cudaGetErrorString(err)));
-            }
-            #endif
-        }
+            owns_data_ = true;
         }
         return *this;
     }
@@ -120,6 +126,7 @@ public:
     size_t cols() const { return cols_; }
     const std::string& get_id() const { return id_; }
     Device get_device() const { return device_; }
+    bool is_view() const { return !owns_data_; }
 
     float& operator()(size_t row, size_t col) {
         if (row >= rows_ || col >= cols_) {
@@ -680,18 +687,16 @@ public:
     }  
 
     ~Tensor2D() {
-        if (data_) {
-            if (device_ == Device::CPU) {
-                delete[] data_;
-            }
-            else {
-                #ifdef USE_CUDA
-                cudaError_t err = cudaFree(data_);
-                if (err != cudaSuccess) {
-                    std::cerr << "Warning: CUDA free failed: " << cudaGetErrorString(err) << std::endl;
-                }
-                #endif
-            }
+        if (!owns_data_) return;
+
+        if (device_ == Device::CPU) {
+            delete[] data_;
+        } else {
+        #ifdef USE_CUDA
+            cudaFree(data_);
+        #else
+            std::cerr << "Warning: CUDA support not enabled, cannot free GPU memory in Tensor2D destructor." << std::endl;
+        #endif
         }
     }
 
