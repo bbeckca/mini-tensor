@@ -6,4 +6,5 @@
 #ifdef USE_CUDA
 Tensor2D mat_mul_cuda(const Tensor2D& A, const Tensor2D& B);
 Tensor3D bmm_cuda(const Tensor3D& A, const Tensor3D& B);
+Tensor3D add_cuda(const Tensor3D& A, const Tensor3D& B);
 #endif

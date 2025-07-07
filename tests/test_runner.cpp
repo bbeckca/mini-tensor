@@ -1324,6 +1324,75 @@ void test_tensor3d_mat_mul_eigen_parallel() {
     std::cout << "PASSED\n";
 }
 
+void test_tensor3d_addition() {
+    std::cout << "Running test: Tensor3D addition... ";
+    Tensor3D t1(2, 2, 2, 41.0f);
+    Tensor3D t2(2, 2, 2, 1.0f);
+
+    Tensor3D t3 = t1 + t2;
+
+    for (size_t b = 0; b < t3.batch_size(); ++b) {
+        for (size_t i = 0; i < t3.rows(); ++i) {
+            for (size_t j = 0; j < t3.cols(); ++j) {
+                assert(t3[b](i, j) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED\n";
+}
+
+void test_tensor3d_subtraction() {
+    std::cout << "Running test: Tensor3D subtraction... ";
+    Tensor3D t1(2, 2, 2, 43.0f);
+    Tensor3D t2(2, 2, 2, 1.0f);
+
+    Tensor3D t3 = t1 - t2;
+
+    for (size_t b = 0; b < t3.batch_size(); ++b) {
+        for (size_t i = 0; i < t3.rows(); ++i) {
+            for (size_t j = 0; j < t3.cols(); ++j) {
+                assert(t3[b](i, j) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED\n";
+}
+
+void test_tensor3d_multiplication() {
+    std::cout << "Running test: Tensor3D multiplication... ";
+    Tensor3D t1(2, 2, 2, 6.0f);
+    Tensor3D t2(2, 2, 2, 7.0f);
+
+    Tensor3D t3 = t1 * t2;
+
+    for (size_t b = 0; b < t3.batch_size(); ++b) {
+        for (size_t i = 0; i < t3.rows(); ++i) {
+            for (size_t j = 0; j < t3.cols(); ++j) {
+                assert(t3[b](i, j) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}   
+
+void test_tensor3d_division() {
+    std::cout << "Running test: Tensor3D division... ";
+    Tensor3D t1(2, 2, 2, 84.0f);
+    Tensor3D t2(2, 2, 2, 2.0f);
+
+    Tensor3D t3 = t1 / t2;
+
+    for (size_t b = 0; b < t3.batch_size(); ++b) {
+        for (size_t i = 0; i < t3.rows(); ++i) {
+            for (size_t j = 0; j < t3.cols(); ++j) {
+                assert(t3[b](i, j) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED\n";
+}
+
+
 void test_ir_trace_for_arithmetic_operators() {
     std::cout << "Running test: IRTrace for arithmetic operators... ";
     TensorID::reset();
@@ -1772,6 +1841,12 @@ int main() {
     test_tensor3d_mat_mul();
     test_tensor3d_mat_mul_eigen();
     test_tensor3d_mat_mul_eigen_parallel();
+    std::cout << std::endl;
+
+    test_tensor3d_addition();
+    test_tensor3d_subtraction();
+    test_tensor3d_multiplication();
+    test_tensor3d_division();
     std::cout << std::endl;
 
     test_ir_trace_for_arithmetic_operators();
