@@ -155,6 +155,20 @@ public:
         return result;
     }
 
+    Tensor3D& operator+=(const Tensor3D& other) {
+        if (this->shape() != other.shape()) {
+            throw std::invalid_argument("Shape mismatch in operator+");
+        }
+
+        for (size_t i = 0; i < this->batch_size(); ++i) {
+            Tensor2D A = (*this)[i];
+            Tensor2D B = other[i];
+            Tensor2D C = A + B;
+            std::memcpy((*this).data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        }
+        return *this;
+    }
+
     Tensor3D operator-(const Tensor3D& other) {
         if (this->shape() != other.shape()) {
             throw std::invalid_argument("Shape mismatch in operator+");
@@ -167,6 +181,19 @@ public:
             std::memcpy(result.data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
         }
         return result;
+    }
+
+    Tensor3D& operator-=(const Tensor3D& other) {
+        if (this->shape() != other.shape()) {
+            throw std::invalid_argument("Shape mismatch in operator-");
+        }
+        for (size_t i = 0; i < this->batch_size(); ++i) {
+            Tensor2D A = (*this)[i];
+            Tensor2D B = other[i];
+            Tensor2D C = A - B;
+            std::memcpy((*this).data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        }
+        return *this;
     }
 
     Tensor3D operator*(const Tensor3D& other) {
@@ -183,6 +210,19 @@ public:
         return result;
     }
 
+    Tensor3D& operator*=(const Tensor3D& other) {
+        if (this->shape() != other.shape()) {
+            throw std::invalid_argument("Shape mismatch in operator*");
+        }
+        for (size_t i = 0; i < this->batch_size(); ++i) {
+            Tensor2D A = (*this)[i];
+            Tensor2D B = other[i];
+            Tensor2D C = A * B;
+            std::memcpy((*this).data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        }
+        return *this;
+    }
+
     Tensor3D operator/(const Tensor3D& other) {
         if (this->shape() != other.shape()) {
             throw std::invalid_argument("Shape mismatch in operator+");
@@ -197,7 +237,18 @@ public:
         return result;
     }
 
-
+    Tensor3D& operator/=(const Tensor3D& other) {
+        if (this->shape() != other.shape()) {
+            throw std::invalid_argument("Shape mismatch in operator/");
+        }
+        for (size_t i = 0; i < this->batch_size(); ++i) {
+            Tensor2D A = (*this)[i];
+            Tensor2D B = other[i];
+            Tensor2D C = A / B;
+            std::memcpy((*this).data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        }
+        return *this;
+    }
 
     Tensor3D mat_mul(const Tensor3D& other) {
         if (this->cols() != other.rows()) {

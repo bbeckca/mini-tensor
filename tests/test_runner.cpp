@@ -1324,8 +1324,8 @@ void test_tensor3d_mat_mul_eigen_parallel() {
     std::cout << "PASSED\n";
 }
 
-void test_tensor3d_addition() {
-    std::cout << "Running test: Tensor3D addition... ";
+void test_tensor3d_addition_with_same_shapes() {
+    std::cout << "Running test: Tensor3D addition with same shapes... ";
     Tensor3D t1(2, 2, 2, 41.0f);
     Tensor3D t2(2, 2, 2, 1.0f);
 
@@ -1341,8 +1341,25 @@ void test_tensor3d_addition() {
     std::cout << "PASSED\n";
 }
 
-void test_tensor3d_subtraction() {
-    std::cout << "Running test: Tensor3D subtraction... ";
+void test_tensor3d_addition_in_place_with_same_shapes() {
+    std::cout << "Running test: Tensor3D addition in place with same shapes... ";
+    Tensor3D t1(2, 2, 2, 41.0f);
+    Tensor3D t2(2, 2, 2, 1.0f);
+
+    t1 += t2;
+
+    for (size_t b = 0; b < t1.batch_size(); ++b) {
+        for (size_t i = 0; i < t1.rows(); ++i) {
+            for (size_t j = 0; j < t1.cols(); ++j) {
+                assert(t1[b](i, j) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED\n";
+}
+
+void test_tensor3d_subtraction_with_same_shapes() {
+    std::cout << "Running test: Tensor3D subtraction with same shapes... ";
     Tensor3D t1(2, 2, 2, 43.0f);
     Tensor3D t2(2, 2, 2, 1.0f);
 
@@ -1358,8 +1375,25 @@ void test_tensor3d_subtraction() {
     std::cout << "PASSED\n";
 }
 
-void test_tensor3d_multiplication() {
-    std::cout << "Running test: Tensor3D multiplication... ";
+void test_tensor3d_subtraction_in_place_with_same_shapes() {
+    std::cout << "Running test: Tensor3D subtraction in place with same shapes... ";
+    Tensor3D t1(2, 2, 2, 43.0f);
+    Tensor3D t2(2, 2, 2, 1.0f);
+
+    t1 -= t2;
+
+    for (size_t b = 0; b < t1.batch_size(); ++b) {
+        for (size_t i = 0; i < t1.rows(); ++i) {
+            for (size_t j = 0; j < t1.cols(); ++j) {
+                assert(t1[b](i, j) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED\n";
+}
+
+void test_tensor3d_multiplication_with_same_shapes() {
+    std::cout << "Running test: Tensor3D multiplication with same shapes... ";
     Tensor3D t1(2, 2, 2, 6.0f);
     Tensor3D t2(2, 2, 2, 7.0f);
 
@@ -1375,8 +1409,25 @@ void test_tensor3d_multiplication() {
     std::cout << "PASSED" << std::endl;
 }   
 
-void test_tensor3d_division() {
-    std::cout << "Running test: Tensor3D division... ";
+void test_tensor3d_multiplication_in_place_with_same_shapes() {
+    std::cout << "Running test: Tensor3D multiplication in place with same shapes... ";
+    Tensor3D t1(2, 2, 2, 6.0f);
+    Tensor3D t2(2, 2, 2, 7.0f);
+
+    t1 *= t2;
+
+    for (size_t b = 0; b < t1.batch_size(); ++b) {
+        for (size_t i = 0; i < t1.rows(); ++i) {
+            for (size_t j = 0; j < t1.cols(); ++j) {
+                assert(t1[b](i, j) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED\n";
+}
+
+void test_tensor3d_division_with_same_shapes() {
+    std::cout << "Running test: Tensor3D division with same shapes... ";
     Tensor3D t1(2, 2, 2, 84.0f);
     Tensor3D t2(2, 2, 2, 2.0f);
 
@@ -1392,6 +1443,22 @@ void test_tensor3d_division() {
     std::cout << "PASSED\n";
 }
 
+void test_tensor3d_division_in_place_with_same_shapes() {
+    std::cout << "Running test: Tensor3D division in place with same shapes... ";
+    Tensor3D t1(2, 2, 2, 84.0f);
+    Tensor3D t2(2, 2, 2, 2.0f);
+
+    t1 /= t2;
+
+    for (size_t b = 0; b < t1.batch_size(); ++b) {
+        for (size_t i = 0; i < t1.rows(); ++i) {
+            for (size_t j = 0; j < t1.cols(); ++j) {
+                assert(t1[b](i, j) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED\n";
+}
 
 void test_ir_trace_for_arithmetic_operators() {
     std::cout << "Running test: IRTrace for arithmetic operators... ";
@@ -1843,10 +1910,16 @@ int main() {
     test_tensor3d_mat_mul_eigen_parallel();
     std::cout << std::endl;
 
-    test_tensor3d_addition();
-    test_tensor3d_subtraction();
-    test_tensor3d_multiplication();
-    test_tensor3d_division();
+    test_tensor3d_addition_with_same_shapes();
+    test_tensor3d_subtraction_with_same_shapes();
+    test_tensor3d_multiplication_with_same_shapes();
+    test_tensor3d_division_with_same_shapes();
+    std::cout << std::endl;
+
+    test_tensor3d_addition_in_place_with_same_shapes();
+    test_tensor3d_subtraction_in_place_with_same_shapes();
+    test_tensor3d_multiplication_in_place_with_same_shapes();
+    test_tensor3d_division_in_place_with_same_shapes();
     std::cout << std::endl;
 
     test_ir_trace_for_arithmetic_operators();
