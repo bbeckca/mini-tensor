@@ -158,21 +158,21 @@ public:
 
     Tensor3D& operator+=(const Tensor3D& other) {
         if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator+");
+            throw std::invalid_argument("Shape mismatch in operator+=");
         }
-
-        for (size_t i = 0; i < this->batch_size(); ++i) {
-            Tensor2D A = (*this)[i];
-            Tensor2D B = other[i];
-            Tensor2D C = A + B;
-            std::memcpy((*this).data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        for (size_t i = 0; i < B_; ++i) {
+            for (size_t j = 0; j < M_; ++j) {
+                for (size_t k = 0; k < N_; ++k) {
+                    (*this)(i, j, k) += other(i, j, k);
+                }
+            }
         }
         return *this;
     }
 
     Tensor3D operator-(const Tensor3D& other) {
         if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator+");
+            throw std::invalid_argument("Shape mismatch in operator-");
         }
         Tensor3D result(B_, M_, N_);
         for (size_t i = 0; i < B_; ++i) {
@@ -187,20 +187,21 @@ public:
 
     Tensor3D& operator-=(const Tensor3D& other) {
         if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator-");
+            throw std::invalid_argument("Shape mismatch in operator-=");
         }
-        for (size_t i = 0; i < this->batch_size(); ++i) {
-            Tensor2D A = (*this)[i];
-            Tensor2D B = other[i];
-            Tensor2D C = A - B;
-            std::memcpy((*this).data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        for (size_t i = 0; i < B_; ++i) {
+            for (size_t j = 0; j < M_; ++j) {
+                for (size_t k = 0; k < N_; ++k) {
+                    (*this)(i, j, k) -= other(i, j, k);
+                }
+            }
         }
         return *this;
     }
 
     Tensor3D operator*(const Tensor3D& other) {
         if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator+");
+            throw std::invalid_argument("Shape mismatch in operator*");
         }
         Tensor3D result(B_, M_, N_);
         for (size_t i = 0; i < B_; ++i) {
@@ -215,20 +216,21 @@ public:
 
     Tensor3D& operator*=(const Tensor3D& other) {
         if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator*");
+            throw std::invalid_argument("Shape mismatch in operator*=");
         }
-        for (size_t i = 0; i < this->batch_size(); ++i) {
-            Tensor2D A = (*this)[i];
-            Tensor2D B = other[i];
-            Tensor2D C = A * B;
-            std::memcpy((*this).data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        for (size_t i = 0; i < B_; ++i) {
+            for (size_t j = 0; j < M_; ++j) {
+                for (size_t k = 0; k < N_; ++k) {
+                    (*this)(i, j, k) *= other(i, j, k);
+                }
+            }
         }
         return *this;
     }
 
     Tensor3D operator/(const Tensor3D& other) {
         if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator+");
+            throw std::invalid_argument("Shape mismatch in operator/");
         }
         Tensor3D result(B_, M_, N_);
         for (size_t i = 0; i < B_; ++i) {
@@ -243,13 +245,14 @@ public:
 
     Tensor3D& operator/=(const Tensor3D& other) {
         if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator/");
+            throw std::invalid_argument("Shape mismatch in operator/=");
         }
-        for (size_t i = 0; i < this->batch_size(); ++i) {
-            Tensor2D A = (*this)[i];
-            Tensor2D B = other[i];
-            Tensor2D C = A / B;
-            std::memcpy((*this).data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        for (size_t i = 0; i < B_; ++i) {
+            for (size_t j = 0; j < M_; ++j) {
+                for (size_t k = 0; k < N_; ++k) {
+                    (*this)(i, j, k) /= other(i, j, k);
+                }
+            }
         }
         return *this;
     }
