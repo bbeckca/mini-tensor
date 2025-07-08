@@ -1822,6 +1822,104 @@ void test_infer_broadcast_shape_3d_with_incompatible_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_tensor3d_for_each_broadcasted_3d_with_same_shapes() {
+    std::cout << "Running test: for_each_broadcasted_3d with same shapes... ";
+    size_t B = 2, M = 3, N = 4;
+    Tensor3D a(B, M, N, 41.0f);
+    Tensor3D b(B, M, N, 1.0f);
+    Tensor3D c(B, M, N);
+    Tensor3D::for_each_broadcasted_3d(a, b, c, [](float a, float b) {
+        return a + b;
+    });
+    assert(c.shape() == std::make_tuple(B, M, N));
+    for (size_t i = 0; i < B; ++i) {
+        for (size_t j = 0; j < M; ++j) {
+            for (size_t k = 0; k < N; ++k) {
+                assert(c(i, j, k) == a(i, j, k) + b(i, j, k));
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_for_each_broadcasted_3d_with_different_shapes() {
+    std::cout << "Running test: for_each_broadcasted_3d with different shapes... ";
+        
+    // Test case 1: Broadcast batch dimension
+    size_t B1 = 5, M1 = 3, N1 = 5;
+    size_t B2 = 1, M2 = 3, N2 = 5;
+    Tensor3D a1(B1, M1, N1, 41.0f);
+    Tensor3D b1(B2, M2, N2, 1.0f);
+    Tensor3D c1(B1, M1, N1);
+    Tensor3D::for_each_broadcasted_3d(a1, b1, c1, [](float a, float b) {
+        return a + b;
+    });
+    assert(c1.shape() == std::make_tuple(B1, M1, N1));
+    for (size_t i = 0; i < B1; ++i) {
+        for (size_t j = 0; j < M1; ++j) {
+            for (size_t k = 0; k < N1; ++k) {
+                assert(c1(i, j, k) == a1(i, j, k) + b1(i % B2, j % M2, k % N2));
+            }
+        }
+    }
+
+    // Test case 2: Broadcast row dimension
+    size_t B3 = 5, M3 = 5, N3 = 5;
+    size_t B4 = 5, M4 = 1, N4 = 5;
+    Tensor3D a2(B3, M3, N3, 41.0f);
+    Tensor3D b2(B4, M4, N4, 1.0f);
+    Tensor3D c2(B3, M3, N3);
+    Tensor3D::for_each_broadcasted_3d(a2, b2, c2, [](float a, float b) {
+        return a + b;
+    });
+    assert(c2.shape() == std::make_tuple(B3, M3, N3));
+    for (size_t i = 0; i < B3; ++i) {
+        for (size_t j = 0; j < M3; ++j) {
+            for (size_t k = 0; k < N3; ++k) {
+                assert(c2(i, j, k) == a2(i, j, k) + b2(i % B4, j % M4, k % N4));
+            }
+        }
+    }
+
+    // Test case 3: Broadcast column dimension
+    size_t B5 = 5, M5 = 5, N5 = 5;
+    size_t B6 = 5, M6 = 5, N6 = 1;
+    Tensor3D a3(B5, M5, N5, 41.0f);
+    Tensor3D b3(B6, M6, N6, 1.0f);
+    Tensor3D c3(B5, M5, N5);
+    Tensor3D::for_each_broadcasted_3d(a3, b3, c3, [](float a, float b) {
+        return a + b;
+    });
+    assert(c3.shape() == std::make_tuple(B5, M5, N5));
+    for (size_t i = 0; i < B5; ++i) {
+        for (size_t j = 0; j < M5; ++j) {
+            for (size_t k = 0; k < N5; ++k) {
+                assert(c3(i, j, k) == a3(i, j, k) + b3(i % B6, j % M6, k % N6));
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_for_each_broadcasted_3d_with_incompatible_shapes() {
+    std::cout << "Running test: for_each_broadcasted_3d with incompatible shapes... ";
+    size_t B = 2, M = 3, N = 4;
+    Tensor3D a(B, M, N, 41.0f);
+    Tensor3D b(B, M, N, 1.0f);
+    Tensor3D c(1, M, N);
+
+    bool exception_thrown = false;
+    try {
+        Tensor3D::for_each_broadcasted_3d(a, b, c, [](float a, float b) {
+            return a + b;
+        });
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -1978,6 +2076,11 @@ int main() {
     test_infer_broadcast_shape_3d_with_same_shapes();
     test_infer_broadcast_shape_3d_with_different_shapes();
     test_infer_broadcast_shape_3d_with_incompatible_shapes();
+    std::cout << std::endl;
+
+    test_tensor3d_for_each_broadcasted_3d_with_same_shapes();
+    test_tensor3d_for_each_broadcasted_3d_with_different_shapes();
+    test_tensor3d_for_each_broadcasted_3d_with_incompatible_shapes();
     std::cout << std::endl;
 
     test_tensor3d_mat_mul();

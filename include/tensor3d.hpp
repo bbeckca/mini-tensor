@@ -393,6 +393,32 @@ public:
         return data_[b * M_ * N_ + i * N_ + j];
     }
 
+    template <typename F>
+    static void for_each_broadcasted_3d(
+        const Tensor3D& A,
+        const Tensor3D& B,
+        Tensor3D& out,
+        F op) {
+
+        auto [B1, M1, N1] = A.shape();
+        auto [B2, M2, N2] = B.shape();
+        auto [BO, MO, NO] = out.shape();
+
+        if (BO != B1 && BO != B2) throw std::invalid_argument("Batch size mismatch in broadcasting");
+        if (MO != M1 && MO != M2) throw std::invalid_argument("Row mismatch in broadcasting");
+        if (NO != N1 && NO != N2) throw std::invalid_argument("Column mismatch in broadcasting");
+
+        for (size_t b = 0; b < BO; ++b) {
+            for (size_t i = 0; i < MO; ++i) {
+                for (size_t j = 0; j < NO; ++j) {
+                    float a = A(b % B1, i % M1, j % N1);
+                    float b_val = B(b % B2, i % M2, j % N2);
+                    out(b, i, j) = op(a, b_val);
+                }
+            }
+        }
+    }
+
     static std::tuple<size_t, size_t, size_t> infer_broadcast_shape_3d(
         const std::tuple<size_t, size_t, size_t>& shape1,
         const std::tuple<size_t, size_t, size_t>& shape2) {
