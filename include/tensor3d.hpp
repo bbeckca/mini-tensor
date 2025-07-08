@@ -145,12 +145,13 @@ public:
         if (this->shape() != other.shape()) {
             throw std::invalid_argument("Shape mismatch in operator+");
         }
-        Tensor3D result(this->batch_size(), this->rows(), this->cols());
-        for (size_t i = 0; i < this->batch_size(); ++i) {
-            Tensor2D A = (*this)[i];
-            Tensor2D B = other[i];
-            Tensor2D C = A + B;
-            std::memcpy(result.data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        Tensor3D result(B_, M_, N_);
+        for (size_t i = 0; i < B_; ++i) {
+            for (size_t j = 0; j < M_; ++j) {
+                for (size_t k = 0; k < N_; ++k) {
+                    result(i, j, k) = (*this)(i, j, k) + other(i, j, k);
+                }
+            }
         }
         return result;
     }
@@ -173,12 +174,13 @@ public:
         if (this->shape() != other.shape()) {
             throw std::invalid_argument("Shape mismatch in operator+");
         }
-        Tensor3D result(this->batch_size(), this->rows(), this->cols());
-        for (size_t i = 0; i < this->batch_size(); ++i) {
-            Tensor2D A = (*this)[i];
-            Tensor2D B = other[i];
-            Tensor2D C = A - B;
-            std::memcpy(result.data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        Tensor3D result(B_, M_, N_);
+        for (size_t i = 0; i < B_; ++i) {
+            for (size_t j = 0; j < M_; ++j) {
+                for (size_t k = 0; k < N_; ++k) {
+                    result(i, j, k) = (*this)(i, j, k) - other(i, j, k);
+                }
+            }
         }
         return result;
     }
@@ -200,12 +202,13 @@ public:
         if (this->shape() != other.shape()) {
             throw std::invalid_argument("Shape mismatch in operator+");
         }
-        Tensor3D result(this->batch_size(), this->rows(), this->cols());
-        for (size_t i = 0; i < this->batch_size(); ++i) {
-            Tensor2D A = (*this)[i];
-            Tensor2D B = other[i];
-            Tensor2D C = A * B;
-            std::memcpy(result.data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        Tensor3D result(B_, M_, N_);
+        for (size_t i = 0; i < B_; ++i) {
+            for (size_t j = 0; j < M_; ++j) {
+                for (size_t k = 0; k < N_; ++k) {
+                    result(i, j, k) = (*this)(i, j, k) * other(i, j, k);
+                }
+            }
         }
         return result;
     }
@@ -227,12 +230,13 @@ public:
         if (this->shape() != other.shape()) {
             throw std::invalid_argument("Shape mismatch in operator+");
         }
-        Tensor3D result(this->batch_size(), this->rows(), this->cols());
-        for (size_t i = 0; i < this->batch_size(); ++i) {
-            Tensor2D A = (*this)[i];
-            Tensor2D B = other[i];
-            Tensor2D C = A / B;
-            std::memcpy(result.data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        Tensor3D result(B_, M_, N_);
+        for (size_t i = 0; i < B_; ++i) {
+            for (size_t j = 0; j < M_; ++j) {
+                for (size_t k = 0; k < N_; ++k) {
+                    result(i, j, k) = (*this)(i, j, k) / other(i, j, k);
+                }
+            }
         }
         return result;
     }
@@ -369,5 +373,22 @@ public:
         float* ptr = data_ + b * M_ * N_;
         std::memcpy(ptr, t.data(), M_ * N_ * sizeof(float));
     }
+
+    float& operator()(size_t b, size_t i, size_t j) {
+        if (device_ != Device::CPU)
+            throw std::runtime_error("operator() only supports CPU tensors");
+        if (b >= B_ || i >= M_ || j >= N_)
+            throw std::out_of_range("Tensor3D index out of bounds");
+        return data_[b * M_ * N_ + i * N_ + j];
+    }
+
+    const float& operator()(size_t b, size_t i, size_t j) const {
+        if (device_ != Device::CPU)
+            throw std::runtime_error("operator() only supports CPU tensors");
+        if (b >= B_ || i >= M_ || j >= N_)
+            throw std::out_of_range("Tensor3D index out of bounds");
+        return data_[b * M_ * N_ + i * N_ + j];
+    }
+
 
 };
