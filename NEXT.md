@@ -26,12 +26,47 @@ This file tracks completed and upcoming features for the tensor library.
 - Added performance benchmarks and correctness tests
 - Optional: compile-time toggle for raw vs Eigen backend
 
-## Next: MatMul Parallelism
-- Add parallelism to matrix multiplication operations
-- Explore multi-threading for further speedup
-- Benchmark and test parallel implementations
+## Tensor3D and Batched Operations (Completed)
+- Implemented `Tensor3D` with contiguous memory layout for GPU compatibility
+- Batched matrix multiplication with manual, Eigen, and parallel implementations
+- Device memory management with CPU/GPU support
+- Broadcasting helper functions `for_each_broadcasted_3d()` and `infer_broadcast_shape_3d()`
+- Comprehensive testing and benchmarking
 
-## Export to Simple IR
-- Trace operations during forward pass
-- Export a minimal IR (e.g., JSON or list of operations)
-- Enables inspection and potential future transformations
+## CUDA Support (Completed)
+- GPU acceleration for matrix multiplication operations
+- Device memory management with `to(Device)` transfer methods
+- Runtime safety checks for CPU-side operations
+- CUDA kernels for `mat_mul_cuda()` and `bmm_cuda()`
+- Performance benchmarks showing significant speedup
+
+## IR Trace and Tensor IDs (Completed)
+- Global IR trace system for tracking all tensor operations
+- Unique tensor ID generation and tracking
+- Support for both 2D and 3D tensor shapes in trace records
+- Comprehensive operation logging for debugging and introspection
+
+## Next: Refactor Tensor3D Operations to Use Broadcast Helper
+- Convert `-`, `*`, `/` and their in-place versions to use `for_each_broadcasted_3d()`
+- Confirm they work with shape mismatch, same-shape, and scalar-broadcast
+- Replace manual loop implementations with broadcast helper for consistency
+
+## Extend Module Support to Tensor3D
+- Add `Linear::forward(const Tensor3D&)` for batched linear layers
+- Add `ReLU::forward(const Tensor3D&)` for batched activation
+- Add `Sequential::forward(const Tensor3D&)` for batched model execution
+- Add tests for batched inputs (2–3 examples is plenty)
+
+## Set Up GPU Dev Flow with rsync
+- Configure local-to-T4 rsync workflow
+- Use this instead of pushing commits just to test CUDA
+- Streamline GPU development and testing process
+
+## Add CUDA Support for Tensor3D Operations
+- `add_cuda()` for same-shape Tensor3D addition
+- `bmm_add_cuda()` (fused bmm + bias kernel)
+- Benchmark: `bmm_cuda()` + CPU add vs. `bmm_add_cuda()`
+
+## (Optional but Useful)
+- Extend IRTrace to record broadcasted shapes
+- Benchmark CPU broadcasted ops vs. fused-loop versions (to measure perf gains)
