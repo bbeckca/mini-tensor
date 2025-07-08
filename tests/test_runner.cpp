@@ -1766,6 +1766,61 @@ void test_memory_management_destruction() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_infer_broadcast_shape_3d_with_same_shapes() {
+    std::cout << "Running test: infer_broadcast_shape_3d with same shapes... ";
+    size_t B = 2, M = 3, N = 4;
+    Tensor3D a(B, M, N);
+    Tensor3D b(B, M, N);
+    auto shape = Tensor3D::infer_broadcast_shape_3d(a.shape(), b.shape());
+    assert(shape == std::make_tuple(B, M, N));
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_infer_broadcast_shape_3d_with_different_shapes() {
+    std::cout << "Running test: infer_broadcast_shape_3d with different shapes... ";
+    
+    // Test case 1: Broadcast batch dimension
+    size_t B1 = 5, M1 = 3, N1 = 5;
+    size_t B2 = 1, M2 = 3, N2 = 5;
+    Tensor3D a1(B1, M1, N1);
+    Tensor3D b1(B2, M2, N2);
+    auto shape1 = Tensor3D::infer_broadcast_shape_3d(a1.shape(), b1.shape());
+    assert(shape1 == std::make_tuple(B1, M1, N1));
+
+    // Test case 2: Broadcast row dimension
+    size_t B3 = 5, M3 = 5, N3 = 5;
+    size_t B4 = 5, M4 = 1, N4 = 5;
+    Tensor3D a2(B3, M3, N3);
+    Tensor3D b2(B4, M4, N4);
+    auto shape2 = Tensor3D::infer_broadcast_shape_3d(a2.shape(), b2.shape());
+    assert(shape2 == std::make_tuple(B3, M3, N3));
+
+    // Test case 3: Broadcast column dimension
+    size_t B5 = 5, M5 = 5, N5 = 5;
+    size_t B6 = 5, M6 = 5, N6 = 1;
+    Tensor3D a3(B5, M5, N5);
+    Tensor3D b3(B6, M6, N6);
+    auto shape3 = Tensor3D::infer_broadcast_shape_3d(a3.shape(), b3.shape());
+    assert(shape3 == std::make_tuple(B5, M5, N5));
+    
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_infer_broadcast_shape_3d_with_incompatible_shapes() {
+    std::cout << "Running test: infer_broadcast_shape_3d with incompatible shapes... ";
+    size_t B1 = 5, M1 = 3, N1 = 4;
+    size_t B2 = 3, M2 = 3, N2 = 4;
+    Tensor3D a(B1, M1, N1);
+    Tensor3D b(B2, M2, N2);
+    bool exception_thrown = false;
+    try {
+        auto shape = Tensor3D::infer_broadcast_shape_3d(a.shape(), b.shape());
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
 
 int main() {
     std::cout << std::endl;
@@ -1905,6 +1960,26 @@ int main() {
     test_tensor3d_getters();
     std::cout << std::endl;
 
+    test_copy_from_same_shape();
+    test_copy_from_different_shape_throws();
+    #ifdef USE_CUDA
+    test_to_device_roundtrip();
+    test_copy_from_different_device_throws();
+    #endif
+    std::cout << std::endl;
+    
+    test_copy_constructor_deep_copy();
+    test_assignment_operator_deep_copy();
+    test_self_assignment();
+    test_copy_from_same_tensor();
+    test_memory_management_destruction();
+    std::cout << std::endl;
+
+    test_infer_broadcast_shape_3d_with_same_shapes();
+    test_infer_broadcast_shape_3d_with_different_shapes();
+    test_infer_broadcast_shape_3d_with_incompatible_shapes();
+    std::cout << std::endl;
+
     test_tensor3d_mat_mul();
     test_tensor3d_mat_mul_eigen();
     test_tensor3d_mat_mul_eigen_parallel();
@@ -1930,20 +2005,6 @@ int main() {
     std::cout << std::endl;
 
     
-    test_copy_from_same_shape();
-    test_copy_from_different_shape_throws();
-    #ifdef USE_CUDA
-    test_to_device_roundtrip();
-    test_copy_from_different_device_throws();
-    #endif
-    std::cout << std::endl;
-    
-    test_copy_constructor_deep_copy();
-    test_assignment_operator_deep_copy();
-    test_self_assignment();
-    test_copy_from_same_tensor();
-    test_memory_management_destruction();
-    std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;
     std::cout << "All tests passed successfully!" << std::endl;

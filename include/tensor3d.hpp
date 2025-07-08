@@ -393,5 +393,22 @@ public:
         return data_[b * M_ * N_ + i * N_ + j];
     }
 
+    static std::tuple<size_t, size_t, size_t> infer_broadcast_shape_3d(
+        const std::tuple<size_t, size_t, size_t>& shape1,
+        const std::tuple<size_t, size_t, size_t>& shape2) {
+
+        auto broadcast_dim = [](size_t a, size_t b) -> size_t {
+            if (a == b) return a;
+            if (a == 1) return b;
+            if (b == 1) return a;
+            throw std::invalid_argument("Cannot broadcast: incompatible shapes");
+        };
+
+        return {
+            broadcast_dim(std::get<0>(shape1), std::get<0>(shape2)),  // B
+            broadcast_dim(std::get<1>(shape1), std::get<1>(shape2)),  // M
+            broadcast_dim(std::get<2>(shape1), std::get<2>(shape2))   // N
+        };
+    }
 
 };
