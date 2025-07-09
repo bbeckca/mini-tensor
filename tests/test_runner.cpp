@@ -1993,6 +1993,74 @@ void test_tensor3d_for_each_broadcasted_3d_2d_with_incompatible_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_tensor3d_addition_with_2d_with_same_shapes() {
+    std::cout << "Running test: addition with 2D using same shapes... ";
+    size_t B = 2, M = 3, N = 4;
+    Tensor3D a(B, M, N, 41.0f);
+    Tensor2D b(M, N, 1.0f);
+    Tensor3D c = a + b;
+    assert(c.shape() == std::make_tuple(B, M, N));
+    for (size_t i = 0; i < B; ++i) {
+        for (size_t j = 0; j < M; ++j) {
+            for (size_t k = 0; k < N; ++k) {
+                assert(c(i, j, k) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_subtraction_with_2d_with_same_shapes() {
+    std::cout << "Running test: subtraction with 2D using same shapes... ";
+    size_t B = 2, M = 3, N = 4;
+    Tensor3D a(B, M, N, 43.0f);
+    Tensor2D b(M, N, 1.0f);
+    Tensor3D c = a - b;
+    assert(c.shape() == std::make_tuple(B, M, N));
+    for (size_t i = 0; i < B; ++i) {
+        for (size_t j = 0; j < M; ++j) {
+            for (size_t k = 0; k < N; ++k) {
+                assert(c(i, j, k) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_multiplication_with_2d_with_same_shapes() {
+    std::cout << "Running test: multiplication with 2D using same shapes... ";
+    size_t B = 2, M = 3, N = 4;
+    Tensor3D a(B, M, N, 7.0f);
+    Tensor2D b(M, N, 6.0f);
+    Tensor3D c = a * b;
+    assert(c.shape() == std::make_tuple(B, M, N));
+    for (size_t i = 0; i < B; ++i) {
+        for (size_t j = 0; j < M; ++j) {
+            for (size_t k = 0; k < N; ++k) {
+                assert(c(i, j, k) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_division_with_2d_with_same_shapes() {
+    std::cout << "Running test: division with 2D using same shapes... ";
+    size_t B = 2, M = 3, N = 4;
+    Tensor3D a(B, M, N, 84.0f);
+    Tensor2D b(M, N, 2.0f);
+    Tensor3D c = a / b;
+    assert(c.shape() == std::make_tuple(B, M, N));
+    for (size_t i = 0; i < B; ++i) {
+        for (size_t j = 0; j < M; ++j) {
+            for (size_t k = 0; k < N; ++k) {
+                assert(c(i, j, k) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -2176,6 +2244,12 @@ int main() {
     test_tensor3d_mat_mul();
     test_tensor3d_mat_mul_eigen();
     test_tensor3d_mat_mul_eigen_parallel();
+    std::cout << std::endl;
+
+    test_tensor3d_addition_with_2d_with_same_shapes();
+    test_tensor3d_subtraction_with_2d_with_same_shapes();
+    test_tensor3d_multiplication_with_2d_with_same_shapes();
+    test_tensor3d_division_with_2d_with_same_shapes();
     std::cout << std::endl;
 
     test_ir_trace_for_arithmetic_operators();
