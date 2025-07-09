@@ -329,6 +329,27 @@ public:
         return data_[b * M_ * N_ + i * N_ + j];
     }
 
+
+
+    static std::tuple<size_t, size_t, size_t> infer_broadcast_shape_3d(
+        const std::tuple<size_t, size_t, size_t>& shape1,
+        const std::tuple<size_t, size_t, size_t>& shape2) {
+
+        auto broadcast_dim = [](size_t a, size_t b) -> size_t {
+            if (a == b) return a;
+            if (a == 1) return b;
+            if (b == 1) return a;
+            throw std::invalid_argument("Cannot broadcast: incompatible shapes");
+        };
+
+        return {
+            broadcast_dim(std::get<0>(shape1), std::get<0>(shape2)),  // B
+            broadcast_dim(std::get<1>(shape1), std::get<1>(shape2)),  // M
+            broadcast_dim(std::get<2>(shape1), std::get<2>(shape2))   // N
+        };
+    }
+
+
     template <typename F>
     static void for_each_broadcasted_3d(
         const Tensor3D& A,
@@ -355,22 +376,36 @@ public:
         }
     }
 
-    static std::tuple<size_t, size_t, size_t> infer_broadcast_shape_3d(
-        const std::tuple<size_t, size_t, size_t>& shape1,
-        const std::tuple<size_t, size_t, size_t>& shape2) {
+    template <typename F>
+    static void for_each_broadcasted_3d_2d(
+        const Tensor3D& A,
+        const Tensor2D& B,
+        Tensor3D& out,
+        F op) {
 
-        auto broadcast_dim = [](size_t a, size_t b) -> size_t {
-            if (a == b) return a;
-            if (a == 1) return b;
-            if (b == 1) return a;
-            throw std::invalid_argument("Cannot broadcast: incompatible shapes");
-        };
+        auto [B1, M1, N1] = A.shape();
+        auto [M2, N2] = B.shape();
+        auto [BO, MO, NO] = out.shape();
 
-        return {
-            broadcast_dim(std::get<0>(shape1), std::get<0>(shape2)),  // B
-            broadcast_dim(std::get<1>(shape1), std::get<1>(shape2)),  // M
-            broadcast_dim(std::get<2>(shape1), std::get<2>(shape2))   // N
-        };
+        if (BO != B1 || MO != M1 || NO != N1) {
+            throw std::invalid_argument("Output tensor shape does not match broadcasted shape of Tensor3D input.");
+        }
+
+        if ((M2 != 1 && M2 != M1) || (N2 != 1 && N2 != N1)) {
+            throw std::invalid_argument(
+                "Tensor2D shape is not broadcast-compatible with Tensor3D. "
+                "Expected (1, N), (M, 1), (M, N), or (1, 1). Got (" +
+                std::to_string(M2) + ", " + std::to_string(N2) + ")");
+        }
+
+        for (size_t b = 0; b < B1; ++b) {
+            for (size_t i = 0; i < M1; ++i) {
+                for (size_t j = 0; j < N1; ++j) {
+                    float a = A(b, i, j);
+                    float b_val = B(i % M2, j % N2);
+                    out(b, i, j) = op(a, b_val);
+                }
+            }
+        }
     }
-
 };
