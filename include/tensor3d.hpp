@@ -142,17 +142,9 @@ public:
     }
 
     Tensor3D operator+(const Tensor3D& other) {
-        if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator+");
-        }
-        Tensor3D result(B_, M_, N_);
-        for (size_t i = 0; i < B_; ++i) {
-            for (size_t j = 0; j < M_; ++j) {
-                for (size_t k = 0; k < N_; ++k) {
-                    result(i, j, k) = (*this)(i, j, k) + other(i, j, k);
-                }
-            }
-        }
+        auto [B, M, N] = infer_broadcast_shape_3d(this->shape(), other.shape());
+        Tensor3D result(B, M, N);
+        for_each_broadcasted_3d(*this, other, result, [](float a, float b) { return a + b; });
         return result;
     }
 
@@ -171,17 +163,9 @@ public:
     }
 
     Tensor3D operator-(const Tensor3D& other) {
-        if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator-");
-        }
-        Tensor3D result(B_, M_, N_);
-        for (size_t i = 0; i < B_; ++i) {
-            for (size_t j = 0; j < M_; ++j) {
-                for (size_t k = 0; k < N_; ++k) {
-                    result(i, j, k) = (*this)(i, j, k) - other(i, j, k);
-                }
-            }
-        }
+        auto [B, M, N] = infer_broadcast_shape_3d(this->shape(), other.shape());
+        Tensor3D result(B, M, N);
+        for_each_broadcasted_3d(*this, other, result, [](float a, float b) { return a - b; });
         return result;
     }
 
@@ -200,17 +184,9 @@ public:
     }
 
     Tensor3D operator*(const Tensor3D& other) {
-        if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator*");
-        }
-        Tensor3D result(B_, M_, N_);
-        for (size_t i = 0; i < B_; ++i) {
-            for (size_t j = 0; j < M_; ++j) {
-                for (size_t k = 0; k < N_; ++k) {
-                    result(i, j, k) = (*this)(i, j, k) * other(i, j, k);
-                }
-            }
-        }
+        auto [B, M, N] = infer_broadcast_shape_3d(this->shape(), other.shape());
+        Tensor3D result(B, M, N);
+        for_each_broadcasted_3d(*this, other, result, [](float a, float b) { return a * b; });
         return result;
     }
 
@@ -229,17 +205,9 @@ public:
     }
 
     Tensor3D operator/(const Tensor3D& other) {
-        if (this->shape() != other.shape()) {
-            throw std::invalid_argument("Shape mismatch in operator/");
-        }
-        Tensor3D result(B_, M_, N_);
-        for (size_t i = 0; i < B_; ++i) {
-            for (size_t j = 0; j < M_; ++j) {
-                for (size_t k = 0; k < N_; ++k) {
-                    result(i, j, k) = (*this)(i, j, k) / other(i, j, k);
-                }
-            }
-        }
+        auto [B, M, N] = infer_broadcast_shape_3d(this->shape(), other.shape());
+        Tensor3D result(B, M, N);
+        for_each_broadcasted_3d(*this, other, result, [](float a, float b) { return a / b; });
         return result;
     }
 
