@@ -160,6 +160,11 @@ public:
         return *this;
     }
 
+    Tensor3D& operator+=(const Tensor2D& other) {
+        for_each_broadcasted_3d_2d(*this, other, *this, [](float a, float b) { return a + b; });
+        return *this;
+    }
+
     Tensor3D operator-(const Tensor3D& other) {
         auto [B, M, N] = infer_broadcast_shape_3d(this->shape(), other.shape());
         Tensor3D result(B, M, N);
@@ -176,6 +181,11 @@ public:
     Tensor3D& operator-=(const Tensor3D& other) {
         auto [B, M, N] = infer_broadcast_shape_3d(this->shape(), other.shape());
         for_each_broadcasted_3d(*this, other, *this, [](float a, float b) { return a - b; });
+        return *this;
+    }
+
+    Tensor3D& operator-=(const Tensor2D& other) {
+        for_each_broadcasted_3d_2d(*this, other, *this, [](float a, float b) { return a - b; });
         return *this;
     }
 
@@ -198,6 +208,11 @@ public:
         return *this;
     }
 
+    Tensor3D& operator*=(const Tensor2D& other) {
+        for_each_broadcasted_3d_2d(*this, other, *this, [](float a, float b) { return a * b; });
+        return *this;
+    }
+
     Tensor3D operator/(const Tensor3D& other) {
         auto [B, M, N] = infer_broadcast_shape_3d(this->shape(), other.shape());
         Tensor3D result(B, M, N);
@@ -214,6 +229,11 @@ public:
     Tensor3D& operator/=(const Tensor3D& other) {
         auto [B, M, N] = infer_broadcast_shape_3d(this->shape(), other.shape());
         for_each_broadcasted_3d(*this, other, *this, [](float a, float b) { return a / b; });
+        return *this;
+    }
+
+    Tensor3D& operator/=(const Tensor2D& other) {
+        for_each_broadcasted_3d_2d(*this, other, *this, [](float a, float b) { return a / b; });
         return *this;
     }
 
