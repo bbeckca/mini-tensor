@@ -1256,8 +1256,8 @@ void test_tensor3d_slice_batch() {
     std::cout << "PASSED" << std::endl;
 }
 
-void test_tensor3d_mat_mul() {
-    std::cout << "Running test: Tensor3D mat_mul... ";
+void test_tensor3d_mat_mul_with_same_shapes() {
+    std::cout << "Running test: Tensor3D mat_mul with same shapes...";
 
     Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f});
     Tensor3D t2 = Tensor3D::from_vector(2, 2, 2, {5.0f, 6.0f, 7.0f, 8.0f, 13.0f, 14.0f, 15.0f, 16.0f});
@@ -1276,7 +1276,7 @@ void test_tensor3d_mat_mul() {
     assert(t3[1](1, 0) == 323.0f); // 11*13 + 12*15
     assert(t3[1](1, 1) == 346.0f); // 11*14 + 12*16
 
-    std::cout << "PASSED\n";
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_mat_mul_with_compatible_shapes() {
@@ -1354,8 +1354,8 @@ void test_tensor3d_mat_mul_with_incompatible_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
-void test_tensor3d_mat_mul_eigen() {
-    std::cout << "Running test: Tensor3D mat_mul_eigen... ";
+void test_tensor3d_mat_mul_eigen_with_same_shapes() {
+    std::cout << "Running test: Tensor3D mat_mul_eigen with same shapes...";
 
     Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f});
     Tensor3D t2 = Tensor3D::from_vector(2, 2, 2, {5.0f, 6.0f, 7.0f, 8.0f, 13.0f, 14.0f, 15.0f, 16.0f});
@@ -1374,7 +1374,7 @@ void test_tensor3d_mat_mul_eigen() {
     assert(t3[1](1, 0) == 323.0f);
     assert(t3[1](1, 1) == 346.0f);
 
-    std::cout << "PASSED\n";
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_mat_mul_eigen_with_compatible_shapes() {
@@ -1452,8 +1452,8 @@ void test_tensor3d_mat_mul_eigen_with_incompatible_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
-void test_tensor3d_mat_mul_eigen_parallel() {
-    std::cout << "Running test: Tensor3D mat_mul_eigen_parallel... ";
+void test_tensor3d_mat_mul_eigen_parallel_with_same_shapes() {
+    std::cout << "Running test: Tensor3D mat_mul_eigen_parallel with same shapes...";
 
     Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f});
     Tensor3D t2 = Tensor3D::from_vector(2, 2, 2, {5.0f, 6.0f, 7.0f, 8.0f, 13.0f, 14.0f, 15.0f, 16.0f});
@@ -1472,7 +1472,7 @@ void test_tensor3d_mat_mul_eigen_parallel() {
     assert(t3[1](1, 0) == 323.0f);
     assert(t3[1](1, 1) == 346.0f);
 
-    std::cout << "PASSED\n";
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_mat_mul_eigen_parallel_with_compatible_shapes() {
@@ -1547,14 +1547,16 @@ void test_tensor3d_mat_mul_eigen_parallel_with_incompatible_shapes() {
         exception_thrown = true;
     }
     assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
 }
 
-void test_tensor3d_mat_mul_with_2d() {
-    std::cout << "Running test: Tensor3D mat_mul with 2D... ";
+void test_tensor3d_mat_mul_with_2d_with_same_shapes() {
+    std::cout << "Running test: Tensor3D mat_mul with 2D using same shapes...";
     Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f});
     Tensor2D t2 = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f});
 
     Tensor3D t3 = t1.mat_mul(t2);
+    assert(t3.shape() == std::make_tuple(2UL, 2UL, 2UL));
 
     assert(t3[0](0, 0) == 19.0f);
     assert(t3[0](0, 1) == 22.0f);
@@ -1565,8 +1567,72 @@ void test_tensor3d_mat_mul_with_2d() {
     assert(t3[1](0, 1) == 134.0f);
     assert(t3[1](1, 0) == 139.0f);
     assert(t3[1](1, 1) == 162.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_mat_mul_with_2d_with_compatible_shapes() {
+    std::cout << "Running test: Tensor3D mat_mul with 2D with compatible shapes...";
+    Tensor3D t1 = Tensor3D::from_vector(2, 2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f, 11.0f, 12.0f});
+    Tensor2D t2 = Tensor2D::from_vector(3, 2, {5.0f, 6.0f, 7.0f, 8.0f, 9.0f, 10.0f});
+
+    Tensor3D t3 = t1.mat_mul(t2);
+
+    assert(t3.shape() == std::make_tuple(2UL, 2UL, 2UL));
+
+    assert(t3(0, 0, 0) == 46.0f);
+    assert(t3(0, 0, 1) == 52.0f);
+    assert(t3(0, 1, 0) == 109.0f);
+    assert(t3(0, 1, 1) == 124.0f);
     
-    std::cout << "PASSED\n";
+    assert(t3(1, 0, 0) == 172.0f);
+    assert(t3(1, 0, 1) == 196.0f);
+    assert(t3(1, 1, 0) == 235.0f);
+    assert(t3(1, 1, 1) == 268.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_mat_mul_with_2d_identity_matrix() {
+    std::cout << "Running test: Tensor3D mat_mul with 2D identity matrix... ";
+    size_t batch = 1, rows = 2, cols = 2;
+    Tensor3D A = Tensor3D::from_vector(batch, rows, cols, {
+        3.0f, 4.0f,
+        5.0f, 6.0f
+    });
+
+    Tensor3D B = Tensor3D::from_vector(batch, rows, cols, {
+        1.0f, 0.0f,
+        0.0f, 1.0f
+    });
+
+    Tensor3D result = A.mat_mul(B);
+
+    assert(result.shape() == std::make_tuple(batch, rows, cols));
+
+    for (size_t b = 0; b < batch; ++b) {
+        for (size_t i = 0; i < rows; ++i) {
+            for (size_t j = 0; j < cols; ++j) {
+                assert(result(b, i, j) == A(b, i, j));
+            }
+        }
+    }
+
+    std::cout << "PASSED" << std::endl;
+}
+
+
+void test_tensor3d_mat_mul_with_2d_with_incompatible_shapes() {
+    std::cout << "Running test: Tensor3D mat_mul with 2D with incompatible shapes...";
+    Tensor3D t1 = Tensor3D::from_vector(2, 2, 3, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f, 13.0f, 14.0f, 15.0f, 16.0f});
+    Tensor2D t2 = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f});
+
+    bool exception_thrown = false;
+    try {
+        Tensor3D t3 = t1.mat_mul(t2);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_addition_with_same_shapes() {
@@ -1583,7 +1649,7 @@ void test_tensor3d_addition_with_same_shapes() {
             }
         }
     }
-    std::cout << "PASSED\n";
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_addition_in_place_with_same_shapes() {
@@ -1600,7 +1666,7 @@ void test_tensor3d_addition_in_place_with_same_shapes() {
             }
         }
     }
-    std::cout << "PASSED\n";
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_subtraction_with_same_shapes() {
@@ -1617,7 +1683,7 @@ void test_tensor3d_subtraction_with_same_shapes() {
             }
         }
     }
-    std::cout << "PASSED\n";
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_subtraction_in_place_with_same_shapes() {
@@ -1634,7 +1700,7 @@ void test_tensor3d_subtraction_in_place_with_same_shapes() {
             }
         }
     }
-    std::cout << "PASSED\n";
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_multiplication_with_same_shapes() {
@@ -1668,7 +1734,7 @@ void test_tensor3d_multiplication_in_place_with_same_shapes() {
             }
         }
     }
-    std::cout << "PASSED\n";
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_division_with_same_shapes() {
@@ -1685,7 +1751,7 @@ void test_tensor3d_division_with_same_shapes() {
             }
         }
     }
-    std::cout << "PASSED\n";
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_division_in_place_with_same_shapes() {
@@ -1702,7 +1768,7 @@ void test_tensor3d_division_in_place_with_same_shapes() {
             }
         }
     }
-    std::cout << "PASSED\n";
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_ir_trace_for_arithmetic_operators() {
@@ -2554,25 +2620,28 @@ int main() {
     test_tensor3d_division_in_place_with_same_shapes();
     std::cout << std::endl;
 
-    test_tensor3d_mat_mul();
+    test_tensor3d_mat_mul_with_same_shapes();
     test_tensor3d_mat_mul_with_compatible_shapes();
     test_tensor3d_mat_mul_with_identity_matrix();
     test_tensor3d_mat_mul_with_incompatible_shapes();
     std::cout << std::endl;
 
-    test_tensor3d_mat_mul_eigen();
+    test_tensor3d_mat_mul_eigen_with_same_shapes();
     test_tensor3d_mat_mul_eigen_with_compatible_shapes();
     test_tensor3d_mat_mul_eigen_with_identity_matrix();
     test_tensor3d_mat_mul_eigen_with_incompatible_shapes();
     std::cout << std::endl;
 
-    test_tensor3d_mat_mul_eigen_parallel();
+    test_tensor3d_mat_mul_eigen_parallel_with_same_shapes();
     test_tensor3d_mat_mul_eigen_parallel_with_compatible_shapes();
     test_tensor3d_mat_mul_eigen_parallel_with_identity_matrix();
     test_tensor3d_mat_mul_eigen_parallel_with_incompatible_shapes();
     std::cout << std::endl;
 
-    test_tensor3d_mat_mul_with_2d();
+    test_tensor3d_mat_mul_with_2d_with_same_shapes();
+    test_tensor3d_mat_mul_with_2d_with_compatible_shapes();
+    test_tensor3d_mat_mul_with_2d_identity_matrix();
+    test_tensor3d_mat_mul_with_2d_with_incompatible_shapes();
     std::cout << std::endl;
 
     test_tensor3d_addition_with_2d_with_same_shapes();
