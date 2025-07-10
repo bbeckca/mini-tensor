@@ -1351,6 +1351,7 @@ void test_tensor3d_mat_mul_with_incompatible_shapes() {
         exception_thrown = true;
     }
     assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_mat_mul_eigen() {
@@ -1377,7 +1378,7 @@ void test_tensor3d_mat_mul_eigen() {
 }
 
 void test_tensor3d_mat_mul_eigen_with_compatible_shapes() {
-    std::cout << "Running test: Tensor3D mat_mul eigen with compatible shapes... ";
+    std::cout << "Running test: Tensor3D mat_mul_eigen with compatible shapes... ";
 
     Tensor3D A = Tensor3D::from_vector(2, 2, 3, {
         1, 2, 3,
@@ -1414,7 +1415,7 @@ void test_tensor3d_mat_mul_eigen_with_compatible_shapes() {
 }
 
 void test_tensor3d_mat_mul_eigen_with_identity_matrix() {
-    std::cout << "Running test: Tensor3D mat_mul eigen with identity matrix... ";
+    std::cout << "Running test: Tensor3D mat_mul_eigen with identity matrix... ";
 
     Tensor3D A = Tensor3D::from_vector(1, 2, 2, {
         3, 4,
@@ -1437,7 +1438,7 @@ void test_tensor3d_mat_mul_eigen_with_identity_matrix() {
 }
 
 void test_tensor3d_mat_mul_eigen_with_incompatible_shapes() {
-    std::cout << "Running test: Tensor3D mat_mul eigen with incompatible shapes... ";
+    std::cout << "Running test: Tensor3D mat_mul_eigen with incompatible shapes... ";
     Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f});
     Tensor3D t2 = Tensor3D::from_vector(2, 1, 2, {1.0f, 2.0f, 3.0f, 4.0f});
 
@@ -1448,6 +1449,7 @@ void test_tensor3d_mat_mul_eigen_with_incompatible_shapes() {
         exception_thrown = true;
     }
     assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
 }
 
 void test_tensor3d_mat_mul_eigen_parallel() {
@@ -1471,6 +1473,80 @@ void test_tensor3d_mat_mul_eigen_parallel() {
     assert(t3[1](1, 1) == 346.0f);
 
     std::cout << "PASSED\n";
+}
+
+void test_tensor3d_mat_mul_eigen_parallel_with_compatible_shapes() {
+    std::cout << "Running test: Tensor3D mat_mul_eigen_parallel with compatible shapes... ";
+
+    Tensor3D A = Tensor3D::from_vector(2, 2, 3, {
+        1, 2, 3,
+        4, 5, 6,
+        7, 8, 9,
+        10, 11, 12,
+    });
+
+    Tensor3D B = Tensor3D::from_vector(2, 3, 2, {
+        1, 2,
+        0, 1,
+        -1, 0,
+        2, 1,
+        1, 0,
+        0, -1
+    });
+
+    Tensor3D C = A.mat_mul_eigen_parallel(B);
+    assert(C.shape() == std::make_tuple(2UL, 2UL, 2UL));
+
+    // Batch 0
+    assert(C(0, 0, 0) == -2.0f);
+    assert(C(0, 0, 1) == 4.0f);
+    assert(C(0, 1, 0) == -2.0f);
+    assert(C(0, 1, 1) == 13.0f);
+
+    // Batch 1
+    assert(C(1, 0, 0) == 22.0f);
+    assert(C(1, 0, 1) == -2.0f);
+    assert(C(1, 1, 0) == 31.0f);
+    assert(C(1, 1, 1) == -2.0f);
+
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_mat_mul_eigen_parallel_with_identity_matrix() {
+    std::cout << "Running test: Tensor3D mat_mul_eigen_parallel with identity matrix... ";
+
+    Tensor3D A = Tensor3D::from_vector(1, 2, 2, {
+        3, 4,
+        5, 6
+    });
+
+    Tensor3D B = Tensor3D::from_vector(1, 2, 2, {
+        1, 0,
+        0, 1
+    });
+
+    Tensor3D C = A.mat_mul_eigen_parallel(B);
+    assert(C.shape() == std::make_tuple(1UL, 2UL, 2UL));
+    assert(C(0, 0, 0) == 3);
+    assert(C(0, 0, 1) == 4);
+    assert(C(0, 1, 0) == 5);
+    assert(C(0, 1, 1) == 6);
+
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_mat_mul_eigen_parallel_with_incompatible_shapes() {
+    std::cout << "Running test: Tensor3D mat_mul_eigen_parallel with incompatible shapes... ";
+    Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f});
+    Tensor3D t2 = Tensor3D::from_vector(2, 1, 2, {1.0f, 2.0f, 3.0f, 4.0f});
+
+    bool exception_thrown = false;
+    try {
+        Tensor3D t3 = t1.mat_mul_eigen_parallel(t2);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
 }
 
 void test_tensor3d_mat_mul_with_2d() {
@@ -2491,6 +2567,11 @@ int main() {
     std::cout << std::endl;
 
     test_tensor3d_mat_mul_eigen_parallel();
+    test_tensor3d_mat_mul_eigen_parallel_with_compatible_shapes();
+    test_tensor3d_mat_mul_eigen_parallel_with_identity_matrix();
+    test_tensor3d_mat_mul_eigen_parallel_with_incompatible_shapes();
+    std::cout << std::endl;
+
     test_tensor3d_mat_mul_with_2d();
     std::cout << std::endl;
 
