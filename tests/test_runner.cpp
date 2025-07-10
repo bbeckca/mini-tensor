@@ -1324,6 +1324,26 @@ void test_tensor3d_mat_mul_eigen_parallel() {
     std::cout << "PASSED\n";
 }
 
+void test_tensor3d_mat_mul_with_2d() {
+    std::cout << "Running test: Tensor3D mat_mul with 2D... ";
+    Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f});
+    Tensor2D t2 = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f});
+
+    Tensor3D t3 = t1.mat_mul(t2);
+
+    assert(t3[0](0, 0) == 19.0f);
+    assert(t3[0](0, 1) == 22.0f);
+    assert(t3[0](1, 0) == 43.0f);
+    assert(t3[0](1, 1) == 50.0f);
+
+    assert(t3[1](0, 0) == 115.0f);
+    assert(t3[1](0, 1) == 134.0f);
+    assert(t3[1](1, 0) == 139.0f);
+    assert(t3[1](1, 1) == 162.0f);
+    
+    std::cout << "PASSED\n";
+}
+
 void test_tensor3d_addition_with_same_shapes() {
     std::cout << "Running test: Tensor3D addition with same shapes... ";
     Tensor3D t1(2, 2, 2, 41.0f);
@@ -2312,6 +2332,7 @@ int main() {
     test_tensor3d_mat_mul();
     test_tensor3d_mat_mul_eigen();
     test_tensor3d_mat_mul_eigen_parallel();
+    test_tensor3d_mat_mul_with_2d();
     std::cout << std::endl;
 
     test_tensor3d_addition_with_2d_with_same_shapes();

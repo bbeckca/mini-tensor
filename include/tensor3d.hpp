@@ -281,6 +281,22 @@ public:
         return result;
     }
 
+    Tensor3D mat_mul(const Tensor2D& other) {
+        const auto [B, M, N] = this->shape();
+        const auto [M2, N2] = other.shape();
+        if (N != M2) {
+            throw std::invalid_argument("Shape mismatch in mat_mul");
+        }
+        Tensor3D result(B, M, N2);
+        for (size_t i = 0; i < B; ++i) {
+            Tensor2D A = (*this)[i];
+            Tensor2D B = other;
+            Tensor2D C = A.mat_mul(B);
+            std::memcpy(result.data_ + i * C.rows() * C.cols(), C.data(), C.rows() * C.cols() * sizeof(float));
+        }
+        return result;
+    }
+
     static Tensor3D from_random(size_t batch, size_t rows, size_t cols) {
         Tensor3D result(batch, rows, cols);
         for (size_t i = 0; i < batch; ++i) {
