@@ -468,4 +468,56 @@ public:
             }
         }
     }
+
+    Tensor3D unary_op(std::function<float(float)> fn) const {
+        Tensor3D result(B_, M_, N_);
+        for (size_t b = 0; b < B_; ++b) {
+            for (size_t i = 0; i < M_; ++i) {
+                for (size_t j = 0; j < N_; ++j) {
+                    result(b, i, j) = fn(data_[b * M_ * N_ + i * N_ + j]);
+                }
+            }
+        }
+        return result;
+    }
+
+    void unary_op(std::function<float(float)> fn) {
+        for (size_t b = 0; b < B_; ++b) {
+            for (size_t i = 0; i < M_; ++i) {
+                for (size_t j = 0; j < N_; ++j) {
+                    data_[b * M_ * N_ + i * N_ + j] = fn(data_[b * M_ * N_ + i * N_ + j]);
+                }
+            }
+        }
+    }
+
+    Tensor3D relu() const {
+        return unary_op([](float x) { return std::max(x, 0.0f); });
+    }
+
+    void relu_in_place() {
+        unary_op([](float x) { return std::max(x, 0.0f); });
+    }
+
+    Tensor3D negate() const {
+        return unary_op([](float x) { return -x; });
+    }
+
+    void negate_in_place() {
+        unary_op([](float x) { return -x; });
+    }
+
+    Tensor3D abs() const {
+        return unary_op([](float x) { return std::abs(x); });
+    }
+
+    void abs_in_place() {
+        unary_op([](float x) { return std::abs(x); });
+    }
+
+    // sum
+
+    // mean
+
+    // max
 };

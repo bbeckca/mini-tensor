@@ -2440,6 +2440,90 @@ void test_tensor3d_division_in_place_with_2d_with_same_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_tensor3d_relu() {
+    std::cout << "Running test: relu with Tensor3D... ";
+    Tensor3D t = Tensor3D::from_vector(2, 1, 3, {-1.0f, 2.0f, 3.0f, 4.0f, 5.0f, -6.0f});
+    Tensor3D result = t.relu();
+    assert(result.shape() == std::make_tuple(2, 1, 3));
+    assert(result(0, 0, 0) == 0.0f);
+    assert(result(0, 0, 1) == 2.0f);
+    assert(result(0, 0, 2) == 3.0f);    
+    assert(result(1, 0, 0) == 4.0f);
+    assert(result(1, 0, 1) == 5.0f);
+    assert(result(1, 0, 2) == 0.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_relu_in_place() {
+    std::cout << "Running test: relu in place with Tensor3D... ";
+    Tensor3D t = Tensor3D::from_vector(2, 1, 3, {-1.0f, 2.0f, 3.0f, 4.0f, 5.0f, -6.0f});
+    t.relu_in_place();
+    assert(t.shape() == std::make_tuple(2, 1, 3));
+    assert(t(0, 0, 0) == 0.0f);
+    assert(t(0, 0, 1) == 2.0f);
+    assert(t(0, 0, 2) == 3.0f);
+    assert(t(1, 0, 0) == 4.0f);
+    assert(t(1, 0, 1) == 5.0f);
+    assert(t(1, 0, 2) == 0.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_negate() {
+    std::cout << "Running test: negate with Tensor3D... ";
+    Tensor3D t = Tensor3D::from_vector(2, 1, 3, {-1.0f, 2.0f, 3.0f, 4.0f, 5.0f, -6.0f});
+    Tensor3D result = t.negate();
+    assert(result.shape() == std::make_tuple(2, 1, 3));
+    assert(result(0, 0, 0) == 1.0f);
+    assert(result(0, 0, 1) == -2.0f);
+    assert(result(0, 0, 2) == -3.0f);
+    assert(result(1, 0, 0) == -4.0f);
+    assert(result(1, 0, 1) == -5.0f);
+    assert(result(1, 0, 2) == 6.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_negate_in_place() {
+    std::cout << "Running test: negate in place with Tensor3D... ";
+    Tensor3D t = Tensor3D::from_vector(2, 1, 3, {-1.0f, 2.0f, 3.0f, 4.0f, 5.0f, -6.0f});
+    t.negate_in_place();
+    assert(t.shape() == std::make_tuple(2, 1, 3));
+    assert(t(0, 0, 0) == 1.0f);
+    assert(t(0, 0, 1) == -2.0f);
+    assert(t(0, 0, 2) == -3.0f);
+    assert(t(1, 0, 0) == -4.0f);
+    assert(t(1, 0, 1) == -5.0f);
+    assert(t(1, 0, 2) == 6.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_abs() {
+    std::cout << "Running test: abs with Tensor3D... ";
+    Tensor3D t = Tensor3D::from_vector(2, 1, 3, {-1.0f, 2.0f, 3.0f, 4.0f, 5.0f, -6.0f});
+    Tensor3D result = t.abs();
+    assert(result.shape() == std::make_tuple(2, 1, 3));
+    assert(result(0, 0, 0) == 1.0f);
+    assert(result(0, 0, 1) == 2.0f);
+    assert(result(0, 0, 2) == 3.0f);
+    assert(result(1, 0, 0) == 4.0f);
+    assert(result(1, 0, 1) == 5.0f);
+    assert(result(1, 0, 2) == 6.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_tensor3d_abs_in_place() {
+    std::cout << "Running test: abs in place with Tensor3D... ";
+    Tensor3D t = Tensor3D::from_vector(2, 1, 3, {-1.0f, 2.0f, 3.0f, 4.0f, 5.0f, -6.0f});
+    t.abs_in_place();
+    assert(t.shape() == std::make_tuple(2, 1, 3));
+    assert(t(0, 0, 0) == 1.0f);
+    assert(t(0, 0, 1) == 2.0f);
+    assert(t(0, 0, 2) == 3.0f);
+    assert(t(1, 0, 0) == 4.0f);
+    assert(t(1, 0, 1) == 5.0f);
+    assert(t(1, 0, 2) == 6.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -2654,6 +2738,14 @@ int main() {
     test_tensor3d_subtraction_in_place_with_2d_with_same_shapes();
     test_tensor3d_multiplication_in_place_with_2d_with_same_shapes();
     test_tensor3d_division_in_place_with_2d_with_same_shapes();
+    std::cout << std::endl;
+
+    test_tensor3d_relu();
+    test_tensor3d_relu_in_place();
+    test_tensor3d_negate();
+    test_tensor3d_negate_in_place();
+    test_tensor3d_abs();
+    test_tensor3d_abs_in_place();
     std::cout << std::endl;
 
     test_ir_trace_for_arithmetic_operators();
