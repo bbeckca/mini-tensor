@@ -191,6 +191,24 @@ On an NVIDIA T4 instance (GCP) (CPU benchmarks use `mat_mul_eigen()` and `mat_mu
 **Note**: GPU → CPU transfer is significantly slower due to PCIe bandwidth limits.
 
 
+## GPU Development via rsync
+
+To sync only source and test files to your remote machine:
+
+```bash
+REMOTE_HOST=your-user@your-remote-ip bash scripts/sync_to_remote.sh
+```
+
+**Edit `scripts/sync_to_remote.sh` to point to your own GPU box.**
+
+The sync script uses a `.rsync-filter` file to include only essential files:
+- `include/` - Header files
+- `src/` - Source files  
+- `tests/` - Test files
+- `scripts/` - Build scripts
+- `third_party/eigen/Eigen/` - Core Eigen headers
+- `third_party/eigen/unsupported/Eigen/CXX11/Tensor/` - Tensor support headers
+
 
 ## IR Trace
 

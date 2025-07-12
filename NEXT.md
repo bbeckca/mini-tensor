@@ -57,7 +57,7 @@ This file tracks completed and upcoming features for the tensor library.
 - Add `Sequential::forward(const Tensor3D&)` for batched model execution
 - Add tests for batched inputs (2–3 examples)
 
-## Set Up GPU Dev Flow with rsync
+## Set Up GPU Dev Flow with rsync (Completed)
 - Configure local-to-T4 rsync workflow
 - Use this instead of pushing commits just to test CUDA
 - Streamline GPU development and testing process

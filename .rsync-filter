@@ -1,0 +1,18 @@
+# Allow key folders and contents
++ .rsync-filter
++ include/
++ include/**
++ src/
++ src/**
++ tests/
++ tests/**
++ scripts/
++ scripts/**
++ third_party/eigen/Eigen/
++ third_party/eigen/Eigen/**
++ third_party/eigen/unsupported/Eigen/CXX11/Tensor/
++ third_party/eigen/unsupported/Eigen/CXX11/Tensor/**
+
+# Exclude everything else
+- third_party/eigen/**
+- *
