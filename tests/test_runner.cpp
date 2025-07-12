@@ -2524,6 +2524,38 @@ void test_tensor3d_abs_in_place() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_sum_tensor3d() {
+    std::cout << "Running test: sum() with Tensor3D... ";
+    Tensor3D t1(2, 2, 2, 1.0f);
+
+    float sum = t1.sum();
+    assert(sum == 8.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_mean_tensor3d() {
+    std::cout << "Running test: mean() with Tensor3D... ";
+    Tensor3D t1(2, 2, 2, 1.0f);
+    t1(0, 0, 0) = 329.0f;
+
+    float mean = t1.mean();
+    assert(mean == 42.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_max_tensor3d() {
+    std::cout << "Running test: max() with Tensor3D... ";
+    Tensor3D t1(2, 2, 2, 1.0f);
+
+    t1(0, 0, 0) = 42.0f;
+    t1(1, 1, 1) = -43.0f;
+
+    float max = t1.max();
+    assert(max == 42.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+
 int main() {
     std::cout << std::endl;
     std::cout << "--- Running Tensor2D Unit Tests ---" << std::endl;
@@ -2746,6 +2778,11 @@ int main() {
     test_tensor3d_negate_in_place();
     test_tensor3d_abs();
     test_tensor3d_abs_in_place();
+    std::cout << std::endl;
+
+    test_sum_tensor3d();
+    test_mean_tensor3d();
+    test_max_tensor3d();
     std::cout << std::endl;
 
     test_ir_trace_for_arithmetic_operators();
