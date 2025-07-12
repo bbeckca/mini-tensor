@@ -1046,6 +1046,23 @@ void test_bmm_cuda_with_same_shapes() {
     assert(t3_cpu[1](1, 1) == 106.0f);
     std::cout << "PASSED" << std::endl;
 }
+
+void test_add_cuda_same_shape() {
+    std::cout << "Running test: add_cuda with same-shape Tensor2D... ";
+
+    Tensor2D A = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}).to(Device::GPU);
+    Tensor2D B = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f}).to(Device::GPU);
+    
+    Tensor2D C = add_cuda(A, B).to(Device::CPU);
+
+    assert(C(0, 0) == 6.0f);
+    assert(C(0, 1) == 8.0f);
+    assert(C(1, 0) == 10.0f);
+    assert(C(1, 1) == 12.0f);
+
+    std::cout << "PASSED" << std::endl;
+}
+
 #endif
 
 void test_linear_forward() {
@@ -2810,11 +2827,15 @@ int main() {
     std::cout << std::endl;
 
     #ifdef USE_CUDA
+    test_add_cuda_same_shape();
+    std::cout << std::endl;
+
     test_mat_mul_cuda_with_same_shapes();
     test_mat_mul_cuda_with_compatible_shapes();
     test_mat_mul_cuda_with_identity_matrix();
     test_mat_mul_cuda_with_incompatible_device();
     test_mat_mul_cuda_with_incompatible_shapes();
+    std::cout << std::endl;
 
     test_bmm_cuda_with_same_shapes();
     std::cout << std::endl;

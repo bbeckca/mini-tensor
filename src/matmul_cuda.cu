@@ -46,6 +46,15 @@ __global__ void matmul_batch_kernel(
     }
 }
 
+__global__ void add_kernel(const float* A, const float* B, float* C, int M, int N) {
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    if (row < M && col < N) {
+        int idx = row * N + col;
+        C[idx] = A[idx] + B[idx];
+    }
+}
+
 Tensor2D mat_mul_cuda(const Tensor2D& A, const Tensor2D& B) {
     // Initialize CUDA context.
     CUDA_CHECK(cudaFree(0));
@@ -96,6 +105,59 @@ Tensor2D mat_mul_cuda(const Tensor2D& A, const Tensor2D& B) {
 
     // Record the operation in IR trace.
     IRTrace::record("mat_mul_cuda", {A.get_id(), B.get_id()}, C.get_id(), C.shape(), C.get_device());
+
+    return C;
+}
+
+Tensor2D add_cuda(const Tensor2D& A, const Tensor2D& B) {
+    // Initialize CUDA context.
+    CUDA_CHECK(cudaFree(0));
+
+    int M = A.rows();
+    int N = A.cols();
+
+    // Validate input tensors are on GPU.
+    if (A.get_device() != Device::GPU || B.get_device() != Device::GPU)
+        throw std::invalid_argument("add_cuda: inputs must be on GPU");
+
+    // TODO: Add support for broadcasting.
+    // Check matrix addition compatibility.
+    if (M != B.rows() || N != B.cols())
+        throw std::invalid_argument("add_cuda: incompatible shapes");
+
+    // Create result tensor on GPU.
+    Tensor2D C(M, N, 0.0f, Device::GPU);
+
+    // Allocate temporary device memory for kernel execution.
+    float *d_A, *d_B, *d_C;
+    CUDA_CHECK(cudaMalloc(&d_A, M * N * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_B, M * N * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_C, M * N * sizeof(float)));
+
+    // Copy input tensors to temporary device memory.
+    CUDA_CHECK(cudaMemcpy(d_A, A.data(), M * N * sizeof(float), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_B, B.data(), M * N * sizeof(float), cudaMemcpyDeviceToDevice));
+
+    // Launch matrix addition kernel.
+    dim3 threads(16, 16);
+    dim3 blocks((N + 15) / 16, (M + 15) / 16);
+
+    add_kernel<<<blocks, threads>>>(d_A, d_B, d_C, M, N);
+
+    // Check for kernel launch errors and synchronize.
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    // Copy result back to the result tensor.
+    CUDA_CHECK(cudaMemcpy(C.data(), d_C, M * N * sizeof(float), cudaMemcpyDeviceToDevice));
+
+    // Clean up temporary device memory.
+    CUDA_CHECK(cudaFree(d_A));
+    CUDA_CHECK(cudaFree(d_B));
+    CUDA_CHECK(cudaFree(d_C));
+
+    // Record the operation in IR trace.
+    IRTrace::record("add_cuda", {A.get_id(), B.get_id()}, C.get_id(), C.shape(), C.get_device());
 
     return C;
 }
