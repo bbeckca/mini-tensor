@@ -281,7 +281,7 @@ public:
         return result;
     }
 
-    Tensor3D mat_mul(const Tensor2D& other) {
+    Tensor3D mat_mul(const Tensor2D& other) const {
         const auto [B, M, N] = this->shape();
         const auto [M2, N2] = other.shape();
         if (N != M2) {

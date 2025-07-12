@@ -13,4 +13,5 @@ public:
     Tensor2D get_weights() const;
     Tensor2D get_bias() const;
     Tensor2D forward(const Tensor2D& input) override;
+    Tensor3D forward(const Tensor3D& input) override;
 };

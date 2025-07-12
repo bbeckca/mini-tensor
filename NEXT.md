@@ -46,16 +46,16 @@ This file tracks completed and upcoming features for the tensor library.
 - Support for both 2D and 3D tensor shapes in trace records
 - Comprehensive operation logging for debugging and introspection
 
-## Next: Refactor Tensor3D Operations to Use Broadcast Helper
+## Next: Refactor Tensor3D Operations to Use Broadcast Helper (Completed)
 - Convert `-`, `*`, `/` and their in-place versions to use `for_each_broadcasted_3d()`
-- Confirm they work with shape mismatch, same-shape, and scalar-broadcast
+— Test with shape mismatch, same-shape, and Tensor3D <-> Tensor2D broadcasting
 - Replace manual loop implementations with broadcast helper for consistency
 
-## Extend Module Support to Tensor3D
+## Extend Module Support to Tensor3D (Completed)
 - Add `Linear::forward(const Tensor3D&)` for batched linear layers
 - Add `ReLU::forward(const Tensor3D&)` for batched activation
 - Add `Sequential::forward(const Tensor3D&)` for batched model execution
-- Add tests for batched inputs (2–3 examples is plenty)
+- Add tests for batched inputs (2–3 examples)
 
 ## Set Up GPU Dev Flow with rsync
 - Configure local-to-T4 rsync workflow
@@ -70,3 +70,4 @@ This file tracks completed and upcoming features for the tensor library.
 ## (Optional but Useful)
 - Extend IRTrace to record broadcasted shapes
 - Benchmark CPU broadcasted ops vs. fused-loop versions (to measure perf gains)
+- Tensor3D + float, Tensor3D - float, etc.

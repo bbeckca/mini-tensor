@@ -33,3 +33,9 @@ Tensor2D Linear::forward(const Tensor2D& input) {
     IRTrace::record("linear", {input.get_id(), weights.get_id(), bias.get_id()}, result.get_id(), result.shape(), result.get_device());
     return result;
 }
+
+Tensor3D Linear::forward(const Tensor3D& input) {
+    Tensor3D result = input.mat_mul(weights) + bias;
+    IRTrace::record("linear", {input.get_id(), weights.get_id(), bias.get_id()}, result.get_id(), result.shape(), result.get_device());
+    return result;
+}

@@ -1060,6 +1060,61 @@ void test_linear_forward() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_linear_forward_tensor3d() {
+    std::cout << "Running test: Linear forward with Tensor3D... ";
+    Linear linear(3, 2);
+    
+    Tensor2D W = Tensor2D::from_vector(3, 2, {
+        1.0f, 0.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f
+    });
+    Tensor2D B = Tensor2D(1, 2, 0.0f);
+    linear.set_weights(W);
+    linear.set_bias(B);
+
+    Tensor3D input = Tensor3D::from_vector(2, 1, 3, {
+        5.0f, 6.0f, 7.0f,
+        8.0f, 9.0f, 10.0f
+    });
+
+    Tensor3D output = linear.forward(input);
+    assert(output.shape() == std::make_tuple(2UL, 1UL, 2UL));
+    assert(output(0, 0, 0) == 5.0f);
+    assert(output(0, 0, 1) == 6.0f);
+    assert(output(1, 0, 0) == 8.0f);
+    assert(output(1, 0, 1) == 9.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+    void test_linear_forward_tensor3d_with_bias() {
+    std::cout << "Running test: Linear forward with Tensor3D with bias... ";
+    Linear linear(3, 2);
+    
+    Tensor2D W = Tensor2D::from_vector(3, 2, {
+        1.0f, 0.0f,
+        0.0f, 1.0f,
+        0.0f, 0.0f
+    });
+    Tensor2D B = Tensor2D::from_vector(1, 2, {10.0f, -1.0f});
+
+    linear.set_weights(W);
+    linear.set_bias(B);
+
+    Tensor3D input = Tensor3D::from_vector(2, 1, 3, {
+        5.0f, 6.0f, 7.0f,
+        8.0f, 9.0f, 10.0f
+    });
+
+    Tensor3D output = linear.forward(input);
+    assert(output.shape() == std::make_tuple(2UL, 1UL, 2UL));
+    assert(output(0, 0, 0) == 15.0f);
+    assert(output(0, 0, 1) == 5.0f);
+    assert(output(1, 0, 0) == 18.0f);
+    assert(output(1, 0, 1) == 8.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
 void test_relu_forward() {
     std::cout << "Running test: ReLU forward()... ";
     ReLU relu;
@@ -1069,6 +1124,23 @@ void test_relu_forward() {
     assert(output(0, 1) == 0.0f);
     assert(output(0, 2) == 2.0f);
     assert(output(0, 3) == 3.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_relu_forward_tensor3d() {
+    std::cout << "Running test: ReLU forward with Tensor3D... ";
+    ReLU relu;
+    Tensor3D input = Tensor3D::from_vector(2, 1, 4, {-42.0f, 0.0f, 2.0f, 3.0f, 5.0f, 6.0f, 7.0f, -8.0f});
+    Tensor3D output = relu.forward(input);
+    assert(output.shape() == std::make_tuple(2UL, 1UL, 4UL));
+    assert(output(0, 0, 0) == 0.0f);
+    assert(output(0, 0, 1) == 0.0f);
+    assert(output(0, 0, 2) == 2.0f); 
+    assert(output(0, 0, 3) == 3.0f);
+    assert(output(1, 0, 0) == 5.0f);
+    assert(output(1, 0, 1) == 6.0f);
+    assert(output(1, 0, 2) == 7.0f);
+    assert(output(1, 0, 3) == 0.0f);
     std::cout << "PASSED" << std::endl;
 }
 
@@ -1086,8 +1158,46 @@ void test_sequential_forward() {
     Tensor2D input = Tensor2D::from_vector(1, 2, {1.0f, 1.0f});
     Tensor2D output = sequential.forward(input);
 
+    assert(output.shape() == std::make_pair(1UL, 2UL));
     assert(output(0, 0) == 4.0f);
     assert(output(0, 1) == 6.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_sequential_forward_tensor3d() {
+    std::cout << "Running test: Sequential forward with Tensor3D... ";
+    Sequential sequential;
+    auto linear = std::make_unique<Linear>(2, 2);
+    linear->set_weights(Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}));
+    linear->set_bias(Tensor2D::from_vector(1, 2, {0.0f, 0.0f}));
+
+    sequential.add(std::move(linear));
+    sequential.add(std::make_unique<ReLU>());
+
+    Tensor3D input = Tensor3D::from_vector(1, 1, 2, {1.0f, 1.0f});
+    Tensor3D output = sequential.forward(input);
+    
+    assert(output.shape() == std::make_tuple(1UL, 1UL, 2UL));
+    assert(output(0, 0, 0) == 4.0f);
+    assert(output(0, 0, 1) == 6.0f);
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_sequential_forward_tensor3D_with_negative_input() {
+    std::cout << "Running test: Sequential forward with Tensor3D with negative input... ";
+    Sequential sequential;
+    auto linear = std::make_unique<Linear>(2, 2);
+    linear->set_weights(Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}));
+    linear->set_bias(Tensor2D::from_vector(1, 2, {0.0f, 0.0f}));
+
+    sequential.add(std::move(linear));
+    sequential.add(std::make_unique<ReLU>());
+
+    Tensor3D input = Tensor3D::from_vector(1, 1, 2, {0.0f, -1.0f});
+    Tensor3D output = sequential.forward(input);
+    assert(output.shape() == std::make_tuple(1UL, 1UL, 2UL));
+    assert(output(0, 0, 0) == 0.0f);
+    assert(output(0, 0, 1) == 0.0f);
     std::cout << "PASSED" << std::endl;
 }
 
@@ -1118,6 +1228,39 @@ void test_softmax_forward() {
         float row_sum = 0.0f;
         for (size_t j = 0; j < 3; ++j) {
             row_sum += output(i, j);
+        }
+        assert(std::abs(row_sum - 1.0f) < 1e-4f);
+    }
+
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_softmax_forward_tensor3d() {
+    std::cout << "Running test: Softmax forward with Tensor3D... ";
+    Softmax softmax;
+
+    Tensor3D input = Tensor3D::from_vector(1, 2, 3, {
+        1.0f, 2.0f, 3.0f,
+        0.0f, 0.0f, 0.0f
+    });
+    Tensor3D output = softmax.forward(input);
+    assert(output.shape() == std::make_tuple(1UL, 2UL, 3UL));
+
+    // check relative ordering in row 0: softmax(3) > softmax(2) > softmax(1)
+    assert(output(0, 0, 2) > output(0, 0, 1));
+    assert(output(0, 0, 1) > output(0, 0, 0));
+
+    // check uniformity in row 1: softmax([0, 0, 0]) = [1/3, 1/3, 1/3]
+    float expected = 1.0f / 3.0f;
+    for (size_t j = 0; j < 3; ++j) {
+        assert(std::abs(output(0, 1, j) - expected) < 1e-4f);
+    }
+
+    // check that each row sums to ~1
+    for (size_t i = 0; i < 2; ++i) {
+        float row_sum = 0.0f;
+        for (size_t j = 0; j < 3; ++j) {
+            row_sum += output(0, i, j);
         }
         assert(std::abs(row_sum - 1.0f) < 1e-4f);
     }
@@ -2791,8 +2934,14 @@ int main() {
     test_ir_trace_for_softmax();
     test_ir_trace_for_sequential();
     std::cout << std::endl;
-
     
+    test_linear_forward_tensor3d();
+    test_linear_forward_tensor3d_with_bias();
+    test_relu_forward_tensor3d();
+    test_sequential_forward_tensor3d();
+    test_sequential_forward_tensor3D_with_negative_input();
+    test_softmax_forward_tensor3d();
+    std::cout << std::endl;
 
     std::cout << "-----------------------------------" << std::endl;
     std::cout << "All tests passed successfully!" << std::endl;
