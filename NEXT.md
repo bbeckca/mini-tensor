@@ -62,7 +62,7 @@ This file tracks completed and upcoming features for the tensor library.
 - Use this instead of pushing commits just to test CUDA
 - Streamline GPU development and testing process
 
-## Add CUDA Support for Tensor3D Operations
+## Add CUDA Support for Tensor3D Operations (Completed)
 - `add_cuda()` for same-shape Tensor3D addition
 - `bmm_add_cuda()` (fused bmm + bias kernel)
 - Benchmark: `bmm_cuda()` + CPU add vs. `bmm_add_cuda()`
@@ -70,4 +70,5 @@ This file tracks completed and upcoming features for the tensor library.
 ## (Optional but Useful)
 - Extend IRTrace to record broadcasted shapes
 - Benchmark CPU broadcasted ops vs. fused-loop versions (to measure perf gains)
+- Reduce intermediate copies in Tensor3D ops
 - Tensor3D + float, Tensor3D - float, etc.

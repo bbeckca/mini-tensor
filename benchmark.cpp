@@ -178,42 +178,84 @@ void benchmark_bmm_vs_bmm_cuda(size_t B, size_t M, size_t K, size_t N) {
     std::cout << "Speedup:                           " << speedup << "x\n\n";
 }
 
+void benchmark_bmm_add_fused_vs_unfused(size_t B, size_t M, size_t K, size_t N) {
+    std::cout << "Benchmarking fused vs unfused bmm_add_cuda with shapes:\n";
+    std::cout << "  Input:  (" << B << ", " << M << ", " << K << ")\n";
+    std::cout << "  Weight: (" << B << ", " << K << ", " << N << ")\n";
+    std::cout << "  Bias:   (" << B << ", " << M << ", " << N << ")\n";
+
+    // Init CPU tensors
+    Tensor3D input_cpu  = Tensor3D::from_random(B, M, K);
+    Tensor3D weight_cpu = Tensor3D::from_random(B, K, N);
+    Tensor3D bias_cpu   = Tensor3D::from_random(B, M, N);
+
+    // Transfer to GPU
+    Tensor3D input_gpu  = input_cpu.to(Device::GPU);
+    Tensor3D weight_gpu = weight_cpu.to(Device::GPU);
+    Tensor3D bias_gpu   = bias_cpu.to(Device::GPU);
+
+    // Unfused (bmm + add)
+    auto start_unfused = std::chrono::high_resolution_clock::now();
+    Tensor3D temp = bmm_cuda(input_gpu, weight_gpu);
+    Tensor3D unfused_result = add_cuda(temp, bias_gpu);
+    auto end_unfused = std::chrono::high_resolution_clock::now();
+    double time_unfused = std::chrono::duration<double, std::milli>(end_unfused - start_unfused).count();
+
+    // Fused
+    auto start_fused = std::chrono::high_resolution_clock::now();
+    Tensor3D fused_result = bmm_add_cuda(input_gpu, weight_gpu, bias_gpu);
+    auto end_fused = std::chrono::high_resolution_clock::now();
+    double time_fused = std::chrono::duration<double, std::milli>(end_fused - start_fused).count();
+
+    // Print results
+    std::cout << "Unfused (bmm + add): " << time_unfused << " ms\n";
+    std::cout << "Fused (bmm_add_cuda): " << time_fused << " ms\n";
+    std::cout << "Speedup:              " << time_unfused / time_fused << "x\n\n";
+}
 #endif
 
 int main() {
-    benchmark_matmul(16, 16, 16);
-    benchmark_matmul(128, 128, 128);
-    benchmark_matmul(256, 512, 128);
-    benchmark_matmul(512, 512, 512);
-    benchmark_matmul(1024, 1024, 1024);
-    std::cout << std::endl;
+    // benchmark_matmul(16, 16, 16);
+    // benchmark_matmul(128, 128, 128);
+    // benchmark_matmul(256, 512, 128);
+    // benchmark_matmul(512, 512, 512);
+    // benchmark_matmul(1024, 1024, 1024);
+    // std::cout << std::endl;
 
-    benchmark_batched_matmul(8, 16, 16, 16);
-    benchmark_batched_matmul(16, 64, 64, 64);
-    benchmark_batched_matmul(32, 128, 128, 128);
-    benchmark_batched_matmul(8, 256, 512, 128);
-    benchmark_batched_matmul(4, 512, 512, 512);
-    benchmark_batched_matmul(2, 1024, 1024, 1024);
+    // benchmark_batched_matmul(8, 16, 16, 16);
+    // benchmark_batched_matmul(16, 64, 64, 64);
+    // benchmark_batched_matmul(32, 128, 128, 128);
+    // benchmark_batched_matmul(8, 256, 512, 128);
+    // benchmark_batched_matmul(4, 512, 512, 512);
+    // benchmark_batched_matmul(2, 1024, 1024, 1024);
 
-    benchmark_batched_matmul_parallel(8, 16, 16, 16);
-    benchmark_batched_matmul_parallel(16, 64, 64, 64);
-    benchmark_batched_matmul_parallel(32, 128, 128, 128);
-    benchmark_batched_matmul_parallel(8, 256, 512, 128);
-    benchmark_batched_matmul_parallel(4, 512, 512, 512);
-    benchmark_batched_matmul_parallel(2, 1024, 1024, 1024);
-    std::cout << std::endl;
+    // benchmark_batched_matmul_parallel(8, 16, 16, 16);
+    // benchmark_batched_matmul_parallel(16, 64, 64, 64);
+    // benchmark_batched_matmul_parallel(32, 128, 128, 128);
+    // benchmark_batched_matmul_parallel(8, 256, 512, 128);
+    // benchmark_batched_matmul_parallel(4, 512, 512, 512);
+    // benchmark_batched_matmul_parallel(2, 1024, 1024, 1024);
+    // std::cout << std::endl;
 
     #ifdef USE_CUDA
-    benchmark_matmul_cuda_vs_cpu(512);
-    benchmark_matmul_cuda_vs_cpu(1024);
-    benchmark_device_transfer(512);
-    benchmark_device_transfer(1024);
-    benchmark_bmm_vs_bmm_cuda(8, 16, 16, 16);
-    benchmark_bmm_vs_bmm_cuda(16, 64, 64, 64);
-    benchmark_bmm_vs_bmm_cuda(32, 128, 128, 128);
-    benchmark_bmm_vs_bmm_cuda(8, 256, 512, 128);
-    benchmark_bmm_vs_bmm_cuda(4, 512, 512, 512);
-    benchmark_bmm_vs_bmm_cuda(2, 1024, 1024, 1024);
+    // benchmark_matmul_cuda_vs_cpu(512);
+    // benchmark_matmul_cuda_vs_cpu(1024);
+    // benchmark_device_transfer(512);
+    // benchmark_device_transfer(1024);
+    // benchmark_bmm_vs_bmm_cuda(8, 16, 16, 16);
+    // benchmark_bmm_vs_bmm_cuda(16, 64, 64, 64);
+    // benchmark_bmm_vs_bmm_cuda(32, 128, 128, 128);
+    // benchmark_bmm_vs_bmm_cuda(8, 256, 512, 128);
+    // benchmark_bmm_vs_bmm_cuda(4, 512, 512, 512);
+    // benchmark_bmm_vs_bmm_cuda(2, 1024, 1024, 1024);
+    // std::cout << std::endl;
+
+    benchmark_bmm_add_fused_vs_unfused(8, 16, 16, 16);
+    benchmark_bmm_add_fused_vs_unfused(16, 64, 64, 64);
+    benchmark_bmm_add_fused_vs_unfused(32, 128, 128, 128);
+    benchmark_bmm_add_fused_vs_unfused(8, 256, 512, 128);
+    benchmark_bmm_add_fused_vs_unfused(4, 512, 512, 512);
+    benchmark_bmm_add_fused_vs_unfused(2, 1024, 1024, 1024);
     std::cout << std::endl;
     #endif
 }

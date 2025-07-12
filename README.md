@@ -114,6 +114,7 @@ g++ -std=c++17 -Iinclude -Ithird_party/eigen -I/usr/local/cuda/include -DUSE_CUD
 - **IR Trace**: All Tensor2D operations are tracked in a global IR trace for debugging and introspection
 - **Unique Tensor IDs**: Every Tensor2D instance is assigned a unique ID for traceability
 - **CUDA Support**: GPU acceleration with device memory management and CUDA kernels for matrix multiplication
+- **Fused CUDA Kernels**: Optimized `bmm_add_cuda` kernel for batched matmul + bias addition
 
 ## CUDA Support
 

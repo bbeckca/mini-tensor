@@ -4,6 +4,7 @@
 + include/**
 + src/
 + src/**
++ benchmark.cpp
 + tests/
 + tests/**
 + scripts/

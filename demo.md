@@ -8,6 +8,7 @@ _Last updated: July 4, 2025_
 - [Arithmetic Operations](#arithmetic-operations)
 - [Matrix Operations](#matrix-operations)
 - [Tensor3D and Batched Matrix Operations](#tensor3d-and-batched-matrix-operations)
+- [Fused vs Unfused CUDA Benchmark: bmm_add_cuda](#fused-vs-unfused-cuda-benchmark-bmm_add_cuda)
 - [Neural Network Modules](#neural-network-modules)
 - [Reduction Operations](#reduction-operations)
 - [Element-wise Functions](#element-wise-functions)
@@ -320,6 +321,29 @@ Tensor3D C_cuda   = bmm_cuda(A.to(Device::GPU), B.to(Device::GPU));  // CUDA-acc
 | 8 × 256 × 512 × 128       | 18.751        | 0.040         | 474×    |
 | 4 × 512 × 512 × 512       | 142.519       | 0.236         | 603×    |
 | 2 × 1024 × 1024 × 1024    | 1,110.492     | 1.607         | 691×    |
+
+## Fused vs Unfused CUDA Benchmark: bmm_add_cuda
+
+The `bmm_add_cuda` function implements a fused kernel that performs batched matrix multiplication followed by bias addition in a single CUDA kernel. This eliminates the need for separate memory operations and can provide performance benefits by reducing memory bandwidth usage and kernel launch overhead.
+
+### Benchmark Results
+
+The following benchmarks compare the performance of the fused `bmm_add_cuda` kernel against the unfused approach (separate `bmm_cuda` + `add` operations):
+
+| Batch × M × K × N         | Unfused (ms) | Fused (ms) | Speedup |
+|---------------------------|--------------|------------|---------|
+| 8 × 16 × 16 × 16          | 0.129338     | 0.055994   | 2.31×   |
+| 16 × 64 × 64 × 64         | 0.131719     | 0.275237   | 0.48×   |
+| 32 × 128 × 128 × 128      | 1.79135      | 1.25413    | 1.43×   |
+| 8 × 256 × 512 × 128       | 1.72189      | 1.39071    | 1.24×   |
+| 4 × 512 × 512 × 512       | 4.58485      | 3.86199    | 1.19×   |
+| 2 × 1024 × 1024 × 1024    | 13.0954      | 12.1351    | 1.08×   |
+
+**Key observations:**
+- For small matrices (8×16×16), the fused kernel provides significant speedup (~2.3x) due to reduced kernel launch overhead
+- For medium matrices (16×64×64), the unfused approach is actually faster, likely due to better cache utilization in separate kernels
+- For larger matrices, the fused kernel shows consistent but modest speedup (1.1-1.4x)
+- The performance benefit of fusion varies with matrix size and batch dimensions
 
 ### Example: Batched Matrix Multiplication (with Parallel Eigen and CUDA)
 ```cpp
