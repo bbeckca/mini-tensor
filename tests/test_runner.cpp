@@ -1261,6 +1261,54 @@ void test_add_cuda_3d_with_incompatible_broadcast_shapes() {
     assert(exception_thrown);
     std::cout << "PASSED" << std::endl;
 }
+
+void test_bmm_add_cuda_with_same_shapes() {
+    std::cout << "Running test: bmm_add_cuda with same shapes... ";
+
+    size_t B = 2, M = 2, K = 3, N = 2;
+
+    Tensor3D input = Tensor3D::from_vector(B, M, K, {
+        1, 2, 3,   // batch 0
+        4, 5, 6,
+        7, 8, 9,   // batch 1
+        10, 11, 12
+    }, Device::GPU);
+
+    Tensor3D weight = Tensor3D::from_vector(B, K, N, {
+        1, 0,      // batch 0
+        0, 1,
+        1, 1,
+        2, 1,      // batch 1
+        1, 0,
+        0, -1
+    }, Device::GPU);
+
+    Tensor3D bias = Tensor3D::from_vector(B, M, N, {
+        1, 2,      // batch 0
+        3, 4,
+        5, 6,      // batch 1
+        7, 8
+    }, Device::GPU);
+
+    Tensor3D output = bmm_add_cuda(input, weight, bias).to(Device::CPU);
+
+    assert(output.shape() == std::make_tuple(B, M, N));
+
+    // Batch 0 expected result
+    assert(output(0, 0, 0) == 5.0f);   // (1×1 + 2×0 + 3×1) + 1 = 1 + 0 + 3 + 1 = 5
+    assert(output(0, 0, 1) == 7.0f);   // (1×0 + 2×1 + 3×1) + 2 = 0 + 2 + 3 + 2 = 7
+    assert(output(0, 1, 0) == 13.0f);  // (4×1 + 5×0 + 6×1) + 3 = 4 + 0 + 6 + 3 = 13
+    assert(output(0, 1, 1) == 15.0f);  // (4×0 + 5×1 + 6×1) + 4 = 0 + 5 + 6 + 4 = 15
+
+    // Batch 1 expected result
+    assert(output(1, 0, 0) == 27.0f);  // (7×2 + 8×1 + 9×0) + 5 = 14 + 8 + 0 + 5 = 27
+    assert(output(1, 0, 1) == 4.0f);   // (7×1 + 8×0 + 9×(-1)) + 6 = 7 + 0 - 9 + 6 = 4
+    assert(output(1, 1, 0) == 38.0f);  // (10×2 + 11×1 + 12×0) + 7 = 20 + 11 + 0 + 7 = 38
+    assert(output(1, 1, 1) == 6.0f);   // (10×1 + 11×0 + 12×(-1)) + 8 = 10 + 0 -12 + 8 = 6
+    std::cout << "PASSED" << std::endl;
+}
+
+
 #endif
 
 void test_linear_forward() {
@@ -3047,6 +3095,8 @@ int main() {
     test_bmm_cuda_with_identity_matrix();
     test_bmm_cuda_with_incompatible_shapes();
     std::cout << std::endl;
+
+    test_bmm_add_cuda_with_same_shapes();
     #endif
 
     test_linear_forward();

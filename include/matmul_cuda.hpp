@@ -8,5 +8,5 @@ Tensor2D add_cuda(const Tensor2D& A, const Tensor2D& B);
 Tensor3D add_cuda(const Tensor3D& A, const Tensor3D& B);
 Tensor2D mat_mul_cuda(const Tensor2D& A, const Tensor2D& B);
 Tensor3D bmm_cuda(const Tensor3D& A, const Tensor3D& B);
-
+Tensor3D bmm_add_cuda(const Tensor3D& A, const Tensor3D& B, const Tensor3D& C);
 #endif

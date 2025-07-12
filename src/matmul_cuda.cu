@@ -1,3 +1,9 @@
+// TODO(bbeckca): Improvements for bmm_add_cuda
+// - Support broadcasted bias shapes (e.g. [1, M, N] or [B, 1, N])
+// - Skip GPU memcpy if input tensors already live on device (zero-copy)
+// - Fuse with activation (e.g. bmm_add_relu) to reduce launch overhead
+// - Benchmark fused vs unfused performance across shape configs
+
 #include <cuda_runtime.h>
 #include "matmul_cuda.hpp"
 #include "ir_trace.hpp"
@@ -82,7 +88,7 @@ __global__ void matmul_batch_kernel(
     int row   = blockIdx.y * blockDim.y + threadIdx.y;
     int col   = blockIdx.x * blockDim.x + threadIdx.x;
 
-    if (row < M && col < N) {
+    if (batch < BATCH && row < M && col < N) {
         float sum = 0.0f;
         for (int i = 0; i < K; ++i) {
             float a = A[batch * M * K + row * K + i];     // A[batch][row][i]
@@ -90,6 +96,30 @@ __global__ void matmul_batch_kernel(
             sum += a * b;
         }
         C[batch * M * N + row * N + col] = sum;          // C[batch][row][col]
+    }
+}
+
+__global__ void bmm_add_kernel(
+    const float* A,  // [B, M, K]
+    const float* B,  // [B, K, N]
+    const float* C,  // [B, M, N] bias
+    float* D,        // [B, M, N] output
+    int BATCH, int M, int N, int K) {
+
+    int batch = blockIdx.z;
+    int row = blockIdx.y * blockDim.y + threadIdx.y;
+    int col = blockIdx.x * blockDim.x + threadIdx.x;
+    
+    if (batch < BATCH && row < M && col < N) {
+        float sum = 0.0f;
+        for (int k = 0; k < K; ++k) {
+            int a_idx = batch * M * K + row * K + k;
+            int b_idx = batch * K * N + k * N + col;
+            sum += A[a_idx] * B[b_idx];
+        }
+
+        int c_idx = batch * M * N + row * N + col;
+        D[c_idx] = sum + C[c_idx];
     }
 }
 
@@ -208,7 +238,7 @@ Tensor2D mat_mul_cuda(const Tensor2D& A, const Tensor2D& B) {
         throw std::invalid_argument("mat_mul_cuda: inputs must be on GPU");
     }
 
-    // Check matrix multiplication compatibility.
+    // Check matrix multiplication compatibility: (M × K) · (K × N)
     if (K != B.rows()) {
         throw std::invalid_argument("mat_mul_cuda: incompatible shapes");
     }
@@ -263,7 +293,7 @@ Tensor3D bmm_cuda(const Tensor3D& A, const Tensor3D& B) {
     if (A.get_device() != Device::GPU || B.get_device() != Device::GPU)
         throw std::invalid_argument("bmm_cuda: inputs must be on GPU");
 
-    // Check batch matrix multiplication compatibility.
+    // Check matrix multiplication compatibility: (B × M × K) · (B × K × N)
     if (K != B.rows() || BATCH != B.batch_size())
         throw std::invalid_argument("bmm_cuda: incompatible shapes");
 
@@ -301,4 +331,70 @@ Tensor3D bmm_cuda(const Tensor3D& A, const Tensor3D& B) {
     IRTrace::record("bmm_cuda", {A.get_id(), B.get_id()}, C.get_id(), C.shape(), C.get_device());
 
     return C;
+}
+
+
+Tensor3D bmm_add_cuda(const Tensor3D& input, const Tensor3D& weight, const Tensor3D& bias) {
+    // Initialize CUDA context.
+    CUDA_CHECK(cudaFree(0));
+
+    int BATCH = input.batch_size();
+    int M = input.rows();
+    int K = input.cols();
+    int N = weight.cols();
+    
+    // Ensure all inputs are on GPU
+    if (input.get_device() != Device::GPU ||
+        weight.get_device() != Device::GPU ||
+        bias.get_device() != Device::GPU) {
+        throw std::invalid_argument("bmm_add_cuda: all inputs must be on GPU");
+    }
+    
+    // Check matrix multiplication compatibility: (B × M × K) · (B × K × N)
+    if (weight.rows() != K || weight.batch_size() != BATCH) {
+        throw std::invalid_argument("bmm_add_cuda: weight shape incompatible with input");
+    }
+    
+    // Check that bias matches output shape exactly
+    if (bias.shape() != std::make_tuple(BATCH, M, N)) {
+        throw std::invalid_argument("bmm_add_cuda: bias must match output shape (B, M, N)");
+    }    
+
+    // Create result tensor on GPU.
+    Tensor3D output(BATCH, M, N, 0.0f, Device::GPU);
+
+    // Allocate temporary device memory for kernel execution.
+    float *d_input, *d_weight, *d_bias, *d_output;
+    CUDA_CHECK(cudaMalloc(&d_input, BATCH * M * K * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_weight, BATCH * K * N * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_bias, BATCH * M * N * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_output, BATCH * M * N * sizeof(float)));
+
+    // Copy input tensors to temporary device memory.
+    CUDA_CHECK(cudaMemcpy(d_input, input.data(), BATCH * M * K * sizeof(float), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_weight, weight.data(), BATCH * K * N * sizeof(float), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_bias, bias.data(), BATCH * M * N * sizeof(float), cudaMemcpyDeviceToDevice));
+    
+    // Launch batched matrix multiplication kernel.
+    dim3 threads(16, 16);
+    dim3 blocks((N + 15) / 16, (M + 15) / 16, BATCH);
+    bmm_add_kernel<<<blocks, threads>>>(d_input, d_weight, d_bias, d_output, BATCH, M, N, K);
+
+    // Check for kernel launch errors and synchronize.
+    CUDA_CHECK(cudaGetLastError());
+    CUDA_CHECK(cudaDeviceSynchronize());
+
+    // Copy result back to the result tensor.
+    CUDA_CHECK(cudaMemcpy(output.data(), d_output, BATCH * M * N * sizeof(float), cudaMemcpyDeviceToDevice));
+
+    // Clean up temporary device memory.
+    CUDA_CHECK(cudaFree(d_input));
+    CUDA_CHECK(cudaFree(d_weight));
+    CUDA_CHECK(cudaFree(d_bias));
+    CUDA_CHECK(cudaFree(d_output));
+
+    // Record the operation in IR trace.
+    IRTrace::record("bmm_add_cuda", {input.get_id(), weight.get_id(), bias.get_id()}, output.get_id(), output.shape(), output.get_device());
+
+    return output;
 }
