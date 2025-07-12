@@ -1048,7 +1048,7 @@ void test_bmm_cuda_with_same_shapes() {
 }
 
 void test_add_cuda_same_shape() {
-    std::cout << "Running test: add_cuda with same-shape Tensor2D... ";
+    std::cout << "Running test: add_cuda for Tensor2D with same-shape... ";
 
     Tensor2D A = Tensor2D::from_vector(2, 2, {1.0f, 2.0f, 3.0f, 4.0f}).to(Device::GPU);
     Tensor2D B = Tensor2D::from_vector(2, 2, {5.0f, 6.0f, 7.0f, 8.0f}).to(Device::GPU);
@@ -1060,6 +1060,39 @@ void test_add_cuda_same_shape() {
     assert(C(1, 0) == 10.0f);
     assert(C(1, 1) == 12.0f);
 
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_add_cuda_compatible_broadcast_shapes() {
+    std::cout << "Running test: add_cuda for Tensor2D with compatible broadcast shape... ";
+
+    Tensor2D A = Tensor2D(1, 5, 1.0f, Device::GPU);
+    Tensor2D B = Tensor2D(3, 1, 41.0f, Device::GPU);
+    
+    Tensor2D C = add_cuda(A, B).to(Device::CPU);
+
+    for (size_t i = 0; i < C.rows(); ++i) {
+        for (size_t j = 0; j < C.cols(); ++j) {
+            assert(C(i, j) == 42.0f);
+        }
+    }
+
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_add_cuda_incompatible_broadcast_shapes() {
+    std::cout << "Running test: add_cuda for Tensor2D with incompatible broadcast shape... ";
+
+    Tensor2D A = Tensor2D(2, 2, 1.0f, Device::GPU);
+    Tensor2D B = Tensor2D(3, 2, 41.0f, Device::GPU);
+
+    bool exception_thrown = false;
+    try {
+        add_cuda(A, B).to(Device::CPU);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
     std::cout << "PASSED" << std::endl;
 }
 
@@ -2828,6 +2861,8 @@ int main() {
 
     #ifdef USE_CUDA
     test_add_cuda_same_shape();
+    test_add_cuda_compatible_broadcast_shapes();
+    test_add_cuda_incompatible_broadcast_shapes();
     std::cout << std::endl;
 
     test_mat_mul_cuda_with_same_shapes();

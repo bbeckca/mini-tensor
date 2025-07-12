@@ -46,12 +46,20 @@ __global__ void matmul_batch_kernel(
     }
 }
 
-__global__ void add_kernel(const float* A, const float* B, float* C, int M, int N) {
+__global__ void add_kernel(
+    const float* A, const float* B, float* C,
+    int M, int N,
+    int A_M, int A_N,
+    int B_M, int B_N) {
     int row = blockIdx.y * blockDim.y + threadIdx.y;
     int col = blockIdx.x * blockDim.x + threadIdx.x;
+
     if (row < M && col < N) {
-        int idx = row * N + col;
-        C[idx] = A[idx] + B[idx];
+        int a_idx = (row % A_M) * A_N + (col % A_N);
+        int b_idx = (row % B_M) * B_N + (col % B_N);
+        int c_idx = row * N + col;
+
+        C[c_idx] = A[a_idx] + B[b_idx];
     }
 }
 
@@ -113,36 +121,33 @@ Tensor2D add_cuda(const Tensor2D& A, const Tensor2D& B) {
     // Initialize CUDA context.
     CUDA_CHECK(cudaFree(0));
 
-    int M = A.rows();
-    int N = A.cols();
+    auto [M, N] = A.infer_broadcast_shape(A.shape(), B.shape());
 
     // Validate input tensors are on GPU.
     if (A.get_device() != Device::GPU || B.get_device() != Device::GPU)
         throw std::invalid_argument("add_cuda: inputs must be on GPU");
 
-    // TODO: Add support for broadcasting.
-    // Check matrix addition compatibility.
-    if (M != B.rows() || N != B.cols())
-        throw std::invalid_argument("add_cuda: incompatible shapes");
-
     // Create result tensor on GPU.
     Tensor2D C(M, N, 0.0f, Device::GPU);
 
+    auto [A_M, A_N] = A.shape();
+    auto [B_M, B_N] = B.shape();
+
     // Allocate temporary device memory for kernel execution.
     float *d_A, *d_B, *d_C;
-    CUDA_CHECK(cudaMalloc(&d_A, M * N * sizeof(float)));
-    CUDA_CHECK(cudaMalloc(&d_B, M * N * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_A, A_M * A_N * sizeof(float)));
+    CUDA_CHECK(cudaMalloc(&d_B, B_M * B_N * sizeof(float)));
     CUDA_CHECK(cudaMalloc(&d_C, M * N * sizeof(float)));
 
     // Copy input tensors to temporary device memory.
-    CUDA_CHECK(cudaMemcpy(d_A, A.data(), M * N * sizeof(float), cudaMemcpyDeviceToDevice));
-    CUDA_CHECK(cudaMemcpy(d_B, B.data(), M * N * sizeof(float), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_A, A.data(), A_M * A_N * sizeof(float), cudaMemcpyDeviceToDevice));
+    CUDA_CHECK(cudaMemcpy(d_B, B.data(), B_M * B_N * sizeof(float), cudaMemcpyDeviceToDevice));
 
     // Launch matrix addition kernel.
     dim3 threads(16, 16);
     dim3 blocks((N + 15) / 16, (M + 15) / 16);
 
-    add_kernel<<<blocks, threads>>>(d_A, d_B, d_C, M, N);
+    add_kernel<<<blocks, threads>>>(d_A, d_B, d_C, M, N, A_M, A_N, B_M, B_N);
 
     // Check for kernel launch errors and synchronize.
     CUDA_CHECK(cudaGetLastError());
