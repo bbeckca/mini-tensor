@@ -1028,24 +1028,103 @@ void test_mat_mul_cuda_with_incompatible_device() {
 }
 
 void test_bmm_cuda_with_same_shapes() {
-    std::cout << "Running test: bmm_cuda() with same shapes... ";
-    Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Device::GPU);
-    Tensor3D t2 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 5.0f, 6.0f, 7.0f, 8.0f}, Device::GPU);
-    
-    Tensor3D t3 = bmm_cuda(t1, t2);
-    assert(t3.get_device() == Device::GPU);
-    Tensor3D t3_cpu = t3.to(Device::CPU);
-    
-    assert(t3_cpu[0](0, 0) == 7.0f);
-    assert(t3_cpu[0](0, 1) == 10.0f);
-    assert(t3_cpu[0](1, 0) == 15.0f);
-    assert(t3_cpu[0](1, 1) == 22.0f);
-    assert(t3_cpu[1](0, 0) == 67.0f);
-    assert(t3_cpu[1](0, 1) == 78.0f);
-    assert(t3_cpu[1](1, 0) == 91.0f);
-    assert(t3_cpu[1](1, 1) == 106.0f);
+    std::cout << "Running test: bmm_cuda with same shapes...";
+
+    Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f}, Device::GPU);
+    Tensor3D t2 = Tensor3D::from_vector(2, 2, 2, {5.0f, 6.0f, 7.0f, 8.0f, 13.0f, 14.0f, 15.0f, 16.0f}, Device::GPU);
+
+    Tensor3D t3 = bmm_cuda(t1, t2).to(Device::CPU);
+
+    // Expected t3[0] = t1[0] * t2[0] = [ [19 22], [43 50] ]
+    assert(t3[0](0, 0) == 19.0f); // 1*5 + 2*7
+    assert(t3[0](0, 1) == 22.0f); // 1*6 + 2*8
+    assert(t3[0](1, 0) == 43.0f); // 3*5 + 4*7
+    assert(t3[0](1, 1) == 50.0f); // 3*6 + 4*8
+
+    // Expected t3[1] = t1[1] * t2[1] = [ [267 286], [323 346] ]
+    assert(t3[1](0, 0) == 267.0f); // 9*13 + 10*15
+    assert(t3[1](0, 1) == 286.0f); // 9*14 + 10*16
+    assert(t3[1](1, 0) == 323.0f); // 11*13 + 12*15
+    assert(t3[1](1, 1) == 346.0f); // 11*14 + 12*16
+
     std::cout << "PASSED" << std::endl;
 }
+
+void test_bmm_cuda_with_compatible_shapes() {
+    std::cout << "Running test: bmm_cuda with compatible shapes... ";
+
+    Tensor3D A = Tensor3D::from_vector(2, 2, 3, {
+        1, 2, 3,
+        4, 5, 6,
+        7, 8, 9,
+        10, 11, 12,
+    }, Device::GPU);
+
+    Tensor3D B = Tensor3D::from_vector(2, 3, 2, {
+        1, 2,
+        0, 1,
+        -1, 0,
+        2, 1,
+        1, 0,
+        0, -1
+        }, Device::GPU);
+
+    Tensor3D C = bmm_cuda(A, B).to(Device::CPU);
+    assert(C.shape() == std::make_tuple(2UL, 2UL, 2UL));
+
+    // Batch 0
+    assert(C(0, 0, 0) == -2.0f);
+    assert(C(0, 0, 1) == 4.0f);
+    assert(C(0, 1, 0) == -2.0f);
+    assert(C(0, 1, 1) == 13.0f);
+
+    // Batch 1
+    assert(C(1, 0, 0) == 22.0f);
+    assert(C(1, 0, 1) == -2.0f);
+    assert(C(1, 1, 0) == 31.0f);
+    assert(C(1, 1, 1) == -2.0f);
+
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_bmm_cuda_with_identity_matrix() {
+    std::cout << "Running test: bmm_cuda with identity matrix... ";
+
+    Tensor3D A = Tensor3D::from_vector(1, 2, 2, {
+        3, 4,
+        5, 6
+    }, Device::GPU);
+
+    Tensor3D B = Tensor3D::from_vector(1, 2, 2, {
+        1, 0,
+        0, 1
+    }, Device::GPU);
+
+    Tensor3D C = bmm_cuda(A, B).to(Device::CPU);
+    assert(C.shape() == std::make_tuple(1UL, 2UL, 2UL));
+    assert(C(0, 0, 0) == 3);
+    assert(C(0, 0, 1) == 4);
+    assert(C(0, 1, 0) == 5);
+    assert(C(0, 1, 1) == 6);
+
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_bmm_cuda_with_incompatible_shapes() {
+    std::cout << "Running test: bmm_cuda with incompatible shapes... ";
+    Tensor3D t1 = Tensor3D::from_vector(2, 2, 2, {1.0f, 2.0f, 3.0f, 4.0f, 9.0f, 10.0f, 11.0f, 12.0f}, Device::GPU);
+    Tensor3D t2 = Tensor3D::from_vector(2, 1, 2, {1.0f, 2.0f, 3.0f, 4.0f}, Device::GPU);
+
+    bool exception_thrown = false;
+    try {
+        Tensor3D t3 = bmm_cuda(t1, t2).to(Device::CPU);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
+
 
 void test_add_cuda_same_shape() {
     std::cout << "Running test: add_cuda for Tensor2D with same-shape... ";
@@ -2873,6 +2952,9 @@ int main() {
     std::cout << std::endl;
 
     test_bmm_cuda_with_same_shapes();
+    test_bmm_cuda_with_compatible_shapes();
+    test_bmm_cuda_with_identity_matrix();
+    test_bmm_cuda_with_incompatible_shapes();
     std::cout << std::endl;
     #endif
 
