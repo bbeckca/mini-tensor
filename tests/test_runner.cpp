@@ -1175,6 +1175,92 @@ void test_add_cuda_incompatible_broadcast_shapes() {
     std::cout << "PASSED" << std::endl;
 }
 
+void test_add_cuda_3d_with_same_shapes() {
+    std::cout << "Running test: add_cuda_3d with same shapes... ";
+    size_t B = 2, M = 3, N = 4;
+    Tensor3D a(B, M, N, 41.0f, Device::GPU);
+    Tensor3D b(B, M, N, 1.0f, Device::GPU);
+    Tensor3D c = add_cuda(a, b).to(Device::CPU);
+
+    assert(c.shape() == std::make_tuple(B, M, N));
+    for (size_t i = 0; i < B; ++i) {
+        for (size_t j = 0; j < M; ++j) {
+            for (size_t k = 0; k < N; ++k) {
+                assert(c(i, j, k) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_add_cuda_3d_with_compatible_broadcast_shapes() {
+    std::cout << "Running test: add_cuda_3d with compatible broadcast shapes... ";
+        
+    // Test case 1: Broadcast batch dimension
+    size_t B1 = 5, M1 = 3, N1 = 5;
+    size_t B2 = 1, M2 = 3, N2 = 5;
+    Tensor3D a1(B1, M1, N1, 41.0f, Device::GPU);
+    Tensor3D b1(B2, M2, N2, 1.0f, Device::GPU);
+    Tensor3D c1 = add_cuda(a1, b1).to(Device::CPU);
+
+    assert(c1.shape() == std::make_tuple(B1, M1, N1));
+    for (size_t i = 0; i < B1; ++i) {
+        for (size_t j = 0; j < M1; ++j) {
+            for (size_t k = 0; k < N1; ++k) {
+                assert(c1(i, j, k) == 42.0f);
+            }
+        }
+    }
+
+    // Test case 2: Broadcast row dimension
+    size_t B3 = 5, M3 = 5, N3 = 5;
+    size_t B4 = 5, M4 = 1, N4 = 5;
+    Tensor3D a2(B3, M3, N3, 41.0f, Device::GPU);
+    Tensor3D b2(B4, M4, N4, 1.0f, Device::GPU);
+    Tensor3D c2 = add_cuda(a2, b2).to(Device::CPU);
+    
+    assert(c2.shape() == std::make_tuple(B3, M3, N3));
+    for (size_t i = 0; i < B3; ++i) {
+        for (size_t j = 0; j < M3; ++j) {
+            for (size_t k = 0; k < N3; ++k) {
+                assert(c2(i, j, k) == 42.0f);
+            }
+        }
+    }
+
+    // Test case 3: Broadcast column dimension
+    size_t B5 = 5, M5 = 5, N5 = 5;
+    size_t B6 = 5, M6 = 5, N6 = 1;
+    Tensor3D a3(B5, M5, N5, 41.0f, Device::GPU);
+    Tensor3D b3(B6, M6, N6, 1.0f, Device::GPU);
+    Tensor3D c3 = add_cuda(a3, b3).to(Device::CPU);
+    
+    assert(c3.shape() == std::make_tuple(B5, M5, N5));
+    for (size_t i = 0; i < B5; ++i) {
+        for (size_t j = 0; j < M5; ++j) {
+            for (size_t k = 0; k < N5; ++k) {
+                assert(c3(i, j, k) == 42.0f);
+            }
+        }
+    }
+    std::cout << "PASSED" << std::endl;
+}
+
+void test_add_cuda_3d_with_incompatible_broadcast_shapes() {
+    std::cout << "Running test: add_cuda_3d with incompatible broadcast shapes... ";
+    size_t B = 2, M = 3, N = 4;
+    Tensor3D a(B, M, N, 41.0f, Device::GPU);
+    Tensor3D b(B, 2, N, 1.0f, Device::GPU);
+
+    bool exception_thrown = false;
+    try {
+        add_cuda(a, b).to(Device::CPU);
+    } catch (const std::invalid_argument& e) {
+        exception_thrown = true;
+    }
+    assert(exception_thrown);
+    std::cout << "PASSED" << std::endl;
+}
 #endif
 
 void test_linear_forward() {
@@ -2942,6 +3028,11 @@ int main() {
     test_add_cuda_same_shape();
     test_add_cuda_compatible_broadcast_shapes();
     test_add_cuda_incompatible_broadcast_shapes();
+    std::cout << std::endl;
+
+    test_add_cuda_3d_with_same_shapes();
+    test_add_cuda_3d_with_compatible_broadcast_shapes();
+    test_add_cuda_3d_with_incompatible_broadcast_shapes();
     std::cout << std::endl;
 
     test_mat_mul_cuda_with_same_shapes();
